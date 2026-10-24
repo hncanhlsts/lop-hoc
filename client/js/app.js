@@ -89,19 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Xử lý Đăng nhập vào lớp ---
   joinForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const roomCode = classCodeInput.value.trim().toUpperCase();
-    const name = studentNameInput.value.trim();
-
-    if (!roomCode) {
-      showToast('⚠️ Vui lòng nhập Mã lớp');
-      classCodeInput.focus();
-      return;
-    }
-    if (!name) {
-      showToast('⚠️ Vui lòng nhập Họ và tên của em');
-      studentNameInput.focus();
-      return;
-    }
+    const roomCode = classCodeInput.value.trim().toUpperCase() || 'LOPHOC';
+    const name = studentNameInput.value.trim() || 'Học sinh';
 
     localStorage.setItem('classpoint_student_name', name);
     enterClassroom(roomCode, name, false);
