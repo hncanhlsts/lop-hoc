@@ -28,6 +28,7 @@ class SlideConnection {
     this.onQuizEnd = options.onQuizEnd || (() => {});
     this.onQuizReveal = options.onQuizReveal || (() => {});
     this.onStarAward = options.onStarAward || (() => {});
+    this.onKick = options.onKick || (() => {});
   }
 
   connect(roomCode, studentName, isDemo = false) {
@@ -73,7 +74,8 @@ class SlideConnection {
           `${baseTopic}/slide`,
           `${baseTopic}/quiz`,
           `${baseTopic}/quiz_reveal`,
-          `${baseTopic}/star/${this.studentId}`
+          `${baseTopic}/star/${this.studentId}`,
+          `${baseTopic}/kick/${this.studentId}`
         ], { qos: 0 });
 
         // Gửi thông tin điểm danh & yêu cầu lấy slide hiện tại

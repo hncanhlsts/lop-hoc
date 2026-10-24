@@ -101,6 +101,46 @@ document.addEventListener('DOMContentLoaded', () => {
     studentNameInput.focus();
   }
 
+  
+  // --- Giữ màn hình điện thoại học sinh luôn sáng trong giờ học (Screen Wake Lock) ---
+  let wakeLock = null;
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+      }
+    } catch (err) {
+      console.log('WakeLock error:', err);
+    }
+  }
+
+  document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+      await requestWakeLock();
+    }
+  });
+
+  // --- Nút Thu nhỏ / Mở rộng hộp câu hỏi để học sinh không bị che khuất slide ---
+  const btnToggleQuizSize = document.getElementById('btn-toggle-quiz-size');
+  let isQuizMinimized = false;
+
+  if (btnToggleQuizSize) {
+    btnToggleQuizSize.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isQuizMinimized = !isQuizMinimized;
+      quizOverlay.classList.toggle('minimized', isQuizMinimized);
+      btnToggleQuizSize.textContent = isQuizMinimized ? '▲ Mở rộng để trả lời' : '▼ Thu nhỏ xem đề';
+    });
+  }
+
+  quizOverlay.addEventListener('click', (e) => {
+    if (isQuizMinimized && e.target !== btnCloseQuiz) {
+      isQuizMinimized = false;
+      quizOverlay.classList.remove('minimized');
+      if (btnToggleQuizSize) btnToggleQuizSize.textContent = '▼ Thu nhỏ xem đề';
+    }
+  });
+
   // Khôi phục tên học sinh nếu đã từng nhập
   const savedName = localStorage.getItem('classpoint_student_name');
   if (savedName) {
@@ -173,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     connection.connect(roomCode, name, isDemo);
+    requestWakeLock();
     showToast(`👋 Chào mừng ${name} vào lớp ${roomCode}!`);
   }
 
@@ -232,6 +273,9 @@ document.addEventListener('DOMContentLoaded', () => {
     quizResultBanner.style.display = 'none';
     quizSubmittedMsg.style.display = 'none';
     quizContentArea.style.display = 'block';
+    isQuizMinimized = false;
+    quizOverlay.classList.remove('minimized');
+    if (btnToggleQuizSize) btnToggleQuizSize.textContent = '▼ Thu nhỏ xem đề';
 
     const type = quizData.quizType || 'mcq';
 

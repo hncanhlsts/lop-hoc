@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=4.0"></script>
+  <script src="js/mqtt.min.js?v=4.1"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     :root {
@@ -415,6 +415,8 @@
             Nhấn nút <b>"Bắt đầu phát Live Stream"</b> ở trên để chia sẻ màn hình trực tiếp tới học sinh.
           </p>
         </div>
+        <video id="preview-video" autoplay playsinline muted style="width: 100%; height: 440px; object-fit: contain; display: none; background: #000; border-radius: 8px;"></video>
+        <canvas id="capture-canvas" style="display: none;"></canvas>
         <div id="teacher-stream-frame" style="width: 100%; height: 440px; display: none;"></div>
       </div>
 
