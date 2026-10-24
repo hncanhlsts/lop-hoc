@@ -18,17 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const slideCounter = document.getElementById('slide-counter');
   const syncStatusText = document.getElementById('sync-status-text');
   const slideViewport = document.getElementById('slide-viewport');
-  const slideCanvasWrapper = document.getElementById('slide-canvas-wrapper');
-  const currentSlideImg = document.getElementById('current-slide-img');
-  const slideVideo = document.getElementById('slide-video');
   const waitingCard = document.getElementById('waiting-card');
   const waitingTitle = document.getElementById('waiting-title');
-  const zoomHint = document.getElementById('zoom-hint');
 
-  // Zoom controls
-  const btnZoomIn = document.getElementById('btn-zoom-in');
-  const btnZoomOut = document.getElementById('btn-zoom-out');
-  const btnZoomReset = document.getElementById('btn-zoom-reset');
+  // Controls
   const btnFullscreen = document.getElementById('btn-fullscreen');
 
   // Interactive buttons
@@ -54,9 +47,51 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentQuiz = null;
   let isHandRaised = false;
   let accumulatedStars = 0;
+  let jitsiApi = null;
 
-  // --- Khởi tạo SlideViewer (Pinch-to-zoom & Pan) ---
-  const viewer = new SlideViewer(slideViewport, slideCanvasWrapper);
+  function initLiveStreamFrame(roomCode, studentName) {
+    const container = document.getElementById('live-stream-frame');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const cleanRoom = 'ClassLive-hncanhlsts-' + roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const domain = "meet.jit.si";
+    const options = {
+      roomName: cleanRoom,
+      width: "100%",
+      height: "100%",
+      parentNode: container,
+      userInfo: {
+        displayName: studentName
+      },
+      configOverwrite: {
+        startWithAudioMuted: true,
+        startWithVideoMuted: true,
+        prejoinPageEnabled: false,
+        disableDeepLinking: true,
+        enableWelcomePage: false,
+        readOnlyName: true,
+        defaultRemoteDisplayName: 'Thầy/Cô Giáo'
+      },
+      interfaceConfigOverwrite: {
+        TOOLBAR_BUTTONS: ['fullscreen', 'tileview', 'videoquality'],
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
+        DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+      }
+    };
+
+    try {
+      if (typeof JitsiMeetExternalAPI !== 'undefined') {
+        jitsiApi = new JitsiMeetExternalAPI(domain, options);
+      } else {
+        container.innerHTML = `<iframe src="https://meet.jit.si/${cleanRoom}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
+      }
+    } catch (e) {
+      container.innerHTML = `<iframe src="https://meet.jit.si/${cleanRoom}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
+    }
+  }
 
   // --- Tự động điền Mã lớp nếu học sinh quét mã QR có link kèm `?code=...` ---
   const urlParams = new URLSearchParams(window.location.search);
@@ -81,27 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     },
     onStreamUpdate: (stream) => {
-      if (slideVideo) {
-        slideVideo.srcObject = stream;
-        slideVideo.style.display = 'block';
-        slideVideo.play().catch(() => {});
-      }
-      if (currentSlideImg) currentSlideImg.style.display = 'none';
       if (waitingCard) waitingCard.style.display = 'none';
-      viewer.resetZoom();
-      showToast('🟢 Đã nhận bài giảng trực tiếp từ Thầy/Cô!');
+      showToast('🟢 Đang xem Live Stream bài giảng từ Thầy/Cô!');
     },
     onSlideUpdate: (slideData) => {
-      if (slideData.imageUrl) {
-        currentSlideImg.src = slideData.imageUrl;
-        currentSlideImg.style.display = 'block';
-        if (slideVideo) slideVideo.style.display = 'none';
-        if (waitingCard) waitingCard.style.display = 'none';
-      }
-      slideCounter.textContent = `${slideData.slideNumber}/${slideData.totalSlides}`;
-      viewer.resetZoom();
-      if (zoomHint) {
-        setTimeout(() => { zoomHint.style.opacity = '0'; }, 3500);
+      if (waitingCard) waitingCard.style.display = 'none';
+      if (slideCounter) {
+        slideCounter.textContent = `${slideData.slideNumber}/${slideData.totalSlides}`;
       }
     },
     onQuizStart: (quizData) => {
@@ -145,7 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
     joinScreen.classList.add('hidden');
     viewerScreen.classList.remove('hidden');
 
-    if (isDemo && waitingCard) {
+    if (!isDemo) {
+      initLiveStreamFrame(roomCode, name);
+    } else if (waitingCard) {
       waitingCard.style.display = 'none';
     }
 
@@ -161,10 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
       connection.retry();
     });
   }
-
-  btnZoomIn.addEventListener('click', () => viewer.zoomIn());
-  btnZoomOut.addEventListener('click', () => viewer.zoomOut());
-  btnZoomReset.addEventListener('click', () => viewer.resetZoom());
 
   // Toàn màn hình
   btnFullscreen.addEventListener('click', () => {
@@ -200,20 +219,9 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`Đã gửi: ${react}`);
   });
 
-  // --- Tải slide hiện tại về điện thoại ---
+  // --- Chụp / Lưu bài giảng ---
   btnDownloadSlide.addEventListener('click', () => {
-    const imgSrc = currentSlideImg.src;
-    if (!imgSrc || imgSrc.length < 50) {
-      showToast('Chưa có hình ảnh slide để tải!');
-      return;
-    }
-    const a = document.createElement('a');
-    a.href = imgSrc;
-    a.download = `Slide_${slideCounter.textContent.replace('/', '_')}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast('📥 Đang tải ảnh slide về thiết bị...');
+    showToast('📸 Em có thể chụp ảnh màn hình điện thoại để lưu lại slide nhé!');
   });
 
   // ==========================================

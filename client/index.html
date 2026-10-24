@@ -7,8 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Lớp Học Trực Tuyến - Xem Slide Bài Giảng</title>
-  <link rel="stylesheet" href="css/style.css?v=3.3">
-  <script src="js/mqtt.min.js?v=3.3"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.5">
+  <script src="js/mqtt.min.js?v=3.5"></script>
+  <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
 
@@ -95,30 +96,17 @@
       </div>
     </header>
 
-    <!-- Khu vực hiển thị Slide và cử chỉ Zoom -->
+    <!-- Khu vực hiển thị Live Stream Màn hình Trực Tiếp -->
     <main class="slide-viewport" id="slide-viewport">
-      <div class="zoom-hint" id="zoom-hint">
-        <span>🤏</span> Dùng 2 ngón tay hoặc nút bên phải để phóng to
-      </div>
+      <!-- Khung Live Stream Màn hình Giáo viên -->
+      <div id="live-stream-frame" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; display: flex; align-items: center; justify-content: center;"></div>
 
-      <!-- Màn hình chờ khi Giáo viên chưa bật chia sẻ -->
-      <div id="waiting-card" class="waiting-card">
+      <!-- Màn hình chờ khi chưa vào phòng -->
+      <div id="waiting-card" class="waiting-card" style="display: none;">
         <div class="waiting-spinner"></div>
-        <h3 id="waiting-title">Đang kết nối tới lớp học...</h3>
-        <p id="waiting-desc">Vui lòng đợi Thầy/Cô bấm nút <b>"Bắt đầu trình chiếu"</b> trên máy tính.</p>
+        <h3 id="waiting-title">Đang kết nối tới bài giảng...</h3>
+        <p id="waiting-desc">Vui lòng đợi Thầy/Cô bắt đầu phát sóng màn hình.</p>
         <button id="btn-retry-conn" class="btn-secondary" style="margin-top: 14px; font-size: 13px; padding: 8px 16px;">🔄 Thử lại kết nối</button>
-      </div>
-
-      <div class="slide-canvas-wrapper" id="slide-canvas-wrapper">
-        <video id="slide-video" class="slide-image" autoplay playsinline muted style="display: none;"></video>
-        <img id="current-slide-img" class="slide-image" alt="Slide bài giảng" style="display: none;" />
-      </div>
-
-      <!-- Cụm nút điều khiển Zoom nhanh -->
-      <div class="zoom-controls">
-        <button id="btn-zoom-in" class="zoom-btn" title="Phóng to">➕</button>
-        <button id="btn-zoom-reset" class="zoom-btn" title="Vừa màn hình">⟲</button>
-        <button id="btn-zoom-out" class="zoom-btn" title="Thu nhỏ">➖</button>
       </div>
     </main>
 
@@ -171,9 +159,8 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <!-- Scripts (Cache-busting version 3.3) -->
-  <script src="js/viewer.js?v=3.3"></script>
-  <script src="js/connection.js?v=3.3"></script>
-  <script src="js/app.js?v=3.3"></script>
+  <!-- Scripts (Cache-busting version 3.5) -->
+  <script src="js/connection.js?v=3.5"></script>
+  <script src="js/app.js?v=3.5"></script>
 </body>
 </html>

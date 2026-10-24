@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=3.3"></script>
+  <script src="js/mqtt.min.js?v=3.5"></script>
+  <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -403,19 +404,18 @@
         </button>
       </div>
 
-      <div class="preview-box" id="preview-box">
+      <div class="preview-box" id="preview-box" style="min-height: 420px; padding: 0;">
         <div id="placeholder" class="placeholder-text">
           <div style="font-size: 52px; margin-bottom: 12px;">📽️</div>
-          <h3 style="font-size: 19px; color: #fff; margin-bottom: 8px; font-weight: 700;">Màn hình bài giảng đang ở chế độ chờ</h3>
+          <h3 style="font-size: 19px; color: #fff; margin-bottom: 8px; font-weight: 700;">Khung Live Stream Trình Chiếu</h3>
           <p style="font-size: 14px; color: #94a3b8; max-width: 480px; margin: 0 auto 10px;">
             Mã lớp hiện tại: <b id="guide-code" style="color: #fbbf24; font-size: 18px; letter-spacing: 2px;">1234</b>
           </p>
           <p style="font-size: 13.5px; color: #a5b4fc;">
-            Nhấn nút <b>"Bắt đầu trình chiếu"</b> ở trên để phát bài giảng tới học sinh.
+            Nhấn nút <b>"Bắt đầu phát Live Stream"</b> ở trên để chia sẻ màn hình trực tiếp tới học sinh.
           </p>
         </div>
-        <video id="preview-video" autoplay playsinline muted style="display: none;"></video>
-        <canvas id="capture-canvas" style="display: none;"></canvas>
+        <div id="teacher-stream-frame" style="width: 100%; height: 440px; display: none;"></div>
       </div>
 
       <!-- ========================================================
@@ -552,8 +552,7 @@
 
     let mqttClient = null;
     let students = new Map(); // studentId -> { name, isHandRaised, stars, currentAnswer, lastSeen }
-    let mediaStream = null;
-    let captureInterval = null;
+    let teacherJitsiApi = null;
 
     let currentQuiz = {
       active: false,
@@ -564,15 +563,13 @@
 
     const btnStart = document.getElementById('btn-start');
     const btnStop = document.getElementById('btn-stop');
-    const previewVideo = document.getElementById('preview-video');
+    const teacherStreamFrame = document.getElementById('teacher-stream-frame');
     const placeholder = document.getElementById('placeholder');
     const previewBox = document.getElementById('preview-box');
     const statusDot = document.getElementById('status-dot');
     const statusText = document.getElementById('status-text');
     const studentCount = document.getElementById('student-count');
     const studentList = document.getElementById('student-list');
-    const captureCanvas = document.getElementById('capture-canvas');
-    const ctx = captureCanvas.getContext('2d');
 
     // Quiz DOM
     const typeTabs = document.querySelectorAll('.type-tab');
@@ -875,48 +872,93 @@
     };
 
     // ==========================================
-    // CHIA SẺ MÀN HÌNH BÀI GIẢNG QUA CLOUD
+    // CHIA SẺ MÀN HÌNH BÀI GIẢNG QUA LIVE STREAM SFU
     // ==========================================
-    btnStart.addEventListener('click', async () => {
-      try {
-        mediaStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: "always", frameRate: { ideal: 5, max: 10 } },
-          audio: false
-        });
-
-        previewVideo.srcObject = mediaStream;
-        previewVideo.style.display = 'block';
-        previewVideo.play().catch(() => {});
-        placeholder.style.display = 'none';
-        previewBox.classList.add('broadcasting');
-
-        btnStart.style.display = 'none';
-        btnStop.style.display = 'inline-flex';
-
-        statusDot.classList.add('active');
-        statusText.textContent = `🟢 ĐANG PHÁT SÓNG (MÃ: ${classCode})`;
-
-        mediaStream.getVideoTracks()[0].onended = () => { stopBroadcasting(); };
-        startFrameCapture();
-        previewVideo.onloadeddata = () => {
-          captureAndBroadcast(true);
-        };
-
-      } catch (err) {
-        console.error('Lỗi chia sẻ:', err);
-      }
+    btnStart.addEventListener('click', () => {
+      startLiveStream();
     });
 
-    btnStop.addEventListener('click', () => { stopBroadcasting(); });
+    btnStop.addEventListener('click', () => {
+      stopLiveStream();
+    });
 
-    function stopBroadcasting() {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
+    function startLiveStream() {
+      const cleanCode = getCleanCode(classCode);
+      const roomName = `ClassLive-hncanhlsts-${cleanCode}`;
+
+      teacherStreamFrame.innerHTML = '';
+      teacherStreamFrame.style.display = 'block';
+      placeholder.style.display = 'none';
+      previewBox.classList.add('broadcasting');
+
+      btnStart.style.display = 'none';
+      btnStop.style.display = 'inline-flex';
+
+      statusDot.classList.add('active');
+      statusText.textContent = `🟢 ĐANG PHÁT LIVE STREAM (MÃ: ${classCode})`;
+
+      const domain = "meet.jit.si";
+      const options = {
+        roomName: roomName,
+        width: "100%",
+        height: "440px",
+        parentNode: teacherStreamFrame,
+        userInfo: {
+          displayName: "Thầy/Cô Giáo (Host)"
+        },
+        configOverwrite: {
+          startWithAudioMuted: true,
+          startWithVideoMuted: true,
+          prejoinPageEnabled: false,
+          disableDeepLinking: true,
+          enableWelcomePage: false,
+          defaultRemoteDisplayName: 'Học sinh'
+        },
+        interfaceConfigOverwrite: {
+          TOOLBAR_BUTTONS: [
+            'desktop', 'microphone', 'camera', 'fullscreen',
+            'fodeviceselection', 'hangup', 'tileview'
+          ],
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+        }
+      };
+
+      try {
+        if (typeof JitsiMeetExternalAPI !== 'undefined') {
+          teacherJitsiApi = new JitsiMeetExternalAPI(domain, options);
+          teacherJitsiApi.addEventListener('videoConferenceJoined', () => {
+            console.log('[GV] Đã vào phòng Live Stream, tự động mở chia sẻ màn hình...');
+            setTimeout(() => {
+              if (teacherJitsiApi) {
+                teacherJitsiApi.executeCommand('toggleShareScreen');
+              }
+            }, 800);
+          });
+          teacherJitsiApi.addEventListener('readyToClose', () => {
+            stopLiveStream();
+          });
+        } else {
+          teacherStreamFrame.innerHTML = `<iframe src="https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false" style="width:100%;height:440px;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
+        }
+      } catch (err) {
+        console.error('Lỗi khởi tạo Jitsi:', err);
+        teacherStreamFrame.innerHTML = `<iframe src="https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false" style="width:100%;height:440px;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
       }
-      if (captureInterval) clearInterval(captureInterval);
+    }
 
-      previewVideo.style.display = 'none';
+    function stopLiveStream() {
+      if (teacherJitsiApi) {
+        try {
+          teacherJitsiApi.dispose();
+        } catch (e) {
+          console.error(e);
+        }
+        teacherJitsiApi = null;
+      }
+      teacherStreamFrame.innerHTML = '';
+      teacherStreamFrame.style.display = 'none';
       placeholder.style.display = 'block';
       previewBox.classList.remove('broadcasting');
 
@@ -925,65 +967,6 @@
 
       statusDot.classList.remove('active');
       statusText.textContent = `Đã dừng phát sóng (Mã: ${classCode})`;
-    }
-
-    let lastThumbData = null;
-    const thumbCanvas = document.createElement('canvas');
-    thumbCanvas.width = 40;
-    thumbCanvas.height = 22;
-    const thumbCtx = thumbCanvas.getContext('2d');
-    let lastSentImage = null;
-
-    function hasSlideChanged() {
-      if (!previewVideo || previewVideo.videoWidth === 0) return false;
-      thumbCtx.drawImage(previewVideo, 0, 0, 40, 22);
-      const currentData = thumbCtx.getImageData(0, 0, 40, 22).data;
-      if (!lastThumbData) {
-        lastThumbData = currentData;
-        return true;
-      }
-      let diff = 0;
-      for (let i = 0; i < currentData.length; i += 4) {
-        diff += Math.abs(currentData[i] - lastThumbData[i]);
-        diff += Math.abs(currentData[i+1] - lastThumbData[i+1]);
-        diff += Math.abs(currentData[i+2] - lastThumbData[i+2]);
-      }
-      const avgDiff = diff / (40 * 22 * 3);
-      if (avgDiff > 7) {
-        lastThumbData = currentData;
-        return true;
-      }
-      return false;
-    }
-
-    function captureAndBroadcast(force = false) {
-      if (!mediaStream || previewVideo.videoWidth === 0) return;
-      if (!force && !hasSlideChanged()) return; // Slide chưa thay đổi, không phát trùng lặp!
-
-      captureCanvas.width = 1024;
-      captureCanvas.height = 576;
-      ctx.drawImage(previewVideo, 0, 0, 1024, 576);
-
-      // Nén ảnh chất lượng 65% (~22KB) - cực nhẹ và không bao giờ bị nghẽn mạng!
-      const base64Image = captureCanvas.toDataURL('image/jpeg', 0.65);
-      lastSentImage = base64Image;
-      const cleanCode = getCleanCode(classCode);
-
-      if (mqttClient && mqttClient.connected) {
-        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
-          imageUrl: base64Image,
-          timestamp: Date.now()
-        }), { qos: 0, retain: true });
-        console.log('[GV] Đã gửi slide (~' + Math.round(base64Image.length / 1024) + ' KB)');
-      }
-    }
-
-    function startFrameCapture() {
-      if (captureInterval) clearInterval(captureInterval);
-      lastThumbData = null;
-      setTimeout(() => captureAndBroadcast(true), 400);
-      setTimeout(() => captureAndBroadcast(true), 1200);
-      captureInterval = setInterval(() => captureAndBroadcast(false), 1000);
     }
 
     function updateStudentUI() {
