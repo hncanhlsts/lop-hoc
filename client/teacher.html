@@ -828,15 +828,15 @@
     if (btnOpenFloatingRemote) {
       btnOpenFloatingRemote.addEventListener('click', () => {
         const cleanCode = getCleanCode(classCode);
-        const remoteUrl = window.location.href.split('?')[0] + `?remote=mini&code=${cleanCode}`;
-        window.open(remoteUrl, 'ClassLiveMiniRemote', 'width=420,height=680,top=80,left=80');
+        const remoteUrl = window.location.href.replace(/teacher\.html.*/, '') + `remote.html?code=${cleanCode}`;
+        window.open(remoteUrl, 'ClassLiveRemote', 'width=420,height=720,top=60,left=60');
       });
     }
 
     if (btnOpenMobileRemote && remoteQrModal) {
       btnOpenMobileRemote.addEventListener('click', () => {
         const cleanCode = getCleanCode(classCode);
-        const remoteUrl = window.location.href.split('?')[0] + `?remote=mini&code=${cleanCode}`;
+        const remoteUrl = `https://hncanhlsts.github.io/lop-hoc/remote.html?code=${cleanCode}`;
         remoteUrlText.textContent = remoteUrl;
         remoteQrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(remoteUrl)}`;
         remoteQrModal.style.display = 'flex';
@@ -849,17 +849,11 @@
       });
     }
 
-    // --- NẾU ĐANG Ở CHẾ ĐỘ MINI REMOTE: TỐI ƯU GIAO DIỆN NHỎ GỌN ---
+    // Nếu vào bằng link cũ ?remote=mini thì tự động chuyển sang remote.html
     const urlParamsRemote = new URLSearchParams(window.location.search);
     if (urlParamsRemote.get('remote') === 'mini') {
-      document.body.classList.add('mini-remote-mode');
-      const previewPanel = document.getElementById('preview-box');
-      if (previewPanel) previewPanel.style.display = 'none';
-      const rightPanel = document.querySelectorAll('.panel')[1];
-      if (rightPanel) rightPanel.style.display = 'none';
-      const headerCode = document.querySelector('header');
-      if (headerCode) headerCode.style.padding = '8px 12px';
-      document.title = '🎮 Remote Điều Khiển Lớp Học';
+      const code = urlParamsRemote.get('code') || classCode;
+      window.location.replace(`remote.html?code=${code}`);
     }
 
     
@@ -1588,7 +1582,9 @@
         const studentTopic = `classlive/hncanhlsts/${cleanCode}/student/+`;
         const answerTopic = `classlive/hncanhlsts/${cleanCode}/answer/+`;
         const requestTopic = `classlive/hncanhlsts/${cleanCode}/request_slide`;
-        mqttClient.subscribe([studentTopic, answerTopic, requestTopic], { qos: 0 });
+        const remoteCmdTopic = `classlive/hncanhlsts/${cleanCode}/remote_cmd`;
+        const quizSyncTopic = `classlive/hncanhlsts/${cleanCode}/quiz`;
+        mqttClient.subscribe([studentTopic, answerTopic, requestTopic, remoteCmdTopic, quizSyncTopic], { qos: 0 });
         // Đồng bộ trạng thái phiên tới học sinh & xóa câu hỏi cũ còn đọng
         broadcastSessionMode(mediaStream ? 'smart' : (teacherJitsiApi ? 'live' : 'idle'), !!(mediaStream || teacherJitsiApi));
         if (!currentQuiz.active) {
@@ -1628,6 +1624,63 @@
             }
             updateStatsUI();
             updateStudentUI();
+
+          } else if (topic.includes(`/remote_cmd`)) {
+            // Lệnh từ Remote điều khiển
+            console.log('[GV] Nhận lệnh từ Remote:', data);
+            if (data.command === 'next_slide') {
+              if (cpBtnNext) cpBtnNext.click();
+            } else if (data.command === 'prev_slide') {
+              if (cpBtnPrev) cpBtnPrev.click();
+            } else if (data.command === 'open_name_picker') {
+              if (cpBtnNamepicker) cpBtnNamepicker.click();
+            } else if (data.command === 'open_timer') {
+              if (cpBtnTimer) cpBtnTimer.click();
+            } else if (data.command === 'open_quick_poll') {
+              if (cpBtnPoll) cpBtnPoll.click();
+            } else if (data.command === 'open_leaderboard') {
+              if (cpBtnLeaderboard) cpBtnLeaderboard.click();
+            } else if (data.command === 'spin_winner') {
+              const wheelDisplay = document.getElementById('wheel-name-display');
+              if (wheelDisplay) {
+                wheelDisplay.classList.add('celebrate');
+                wheelDisplay.innerHTML = `🎉 <b>${data.winner}</b>`;
+                if (btnWheelRewardStar) btnWheelRewardStar.style.display = 'inline-flex';
+                playChimeSound();
+              }
+            }
+
+          } else if (topic.endsWith('/quiz')) {
+            // Đồng bộ trạng thái câu hỏi khi phát từ Remote
+            if (data.action === 'start') {
+              currentQuiz.active = true;
+              currentQuiz.type = data.quizType || 'mcq';
+              currentQuiz.answers = {};
+              btnLaunchQuiz.style.display = 'none';
+              btnEndQuiz.style.display = 'inline-flex';
+              btnRevealQuiz.style.display = 'inline-flex';
+              quizBadgeStatus.textContent = '🟢 Đang mở trả lời (từ Remote)';
+              quizBadgeStatus.style.color = '#10b981';
+              statsContainer.style.display = 'block';
+              updateStatsUI();
+            } else if (data.action === 'stop') {
+              currentQuiz.active = false;
+              btnEndQuiz.style.display = 'none';
+              if (btnResetQuiz) btnResetQuiz.style.display = 'inline-flex';
+              quizBadgeStatus.textContent = '⏹️ Đã dừng nhận bài';
+              quizBadgeStatus.style.color = '#f59e0b';
+            } else if (data.action === 'dismiss') {
+              currentQuiz.active = false;
+              currentQuiz.answers = {};
+              btnLaunchQuiz.style.display = 'inline-flex';
+              btnEndQuiz.style.display = 'none';
+              btnRevealQuiz.style.display = 'none';
+              if (btnResetQuiz) btnResetQuiz.style.display = 'none';
+              quizBadgeStatus.textContent = 'Chưa kích hoạt';
+              quizBadgeStatus.style.color = 'var(--text-muted)';
+              statsContainer.style.display = 'none';
+              updateStudentUI();
+            }
 
           } else if (topic.includes(`/request_slide`)) {
             // Học sinh mới vào yêu cầu lấy slide hiện tại

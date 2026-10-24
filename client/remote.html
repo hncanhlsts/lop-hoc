@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>🎮 Remote Điều Khiển Lớp Học - ClassLive</title>
+  <link rel="stylesheet" href="css/style.css?v=4.5">
+  <script src="js/mqtt.min.js?v=4.5"></script>
+  <style>
+    body {
+      background: #090d16;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .remote-header {
+      background: #1e293b;
+      border: 1.5px solid #6366f1;
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    }
+    .remote-badge {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .remote-code {
+      background: #0f172a;
+      border: 1px solid #4f46e5;
+      padding: 3px 10px;
+      border-radius: 6px;
+      letter-spacing: 1.5px;
+      font-size: 14px;
+      color: #6ee7b7;
+    }
+    .remote-status {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .section-card {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-nav {
+      background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      border: 1.5px solid #475569;
+      color: #fff;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+    .btn-nav:active {
+      transform: scale(0.96);
+      background: #4f46e5;
+      border-color: #6366f1;
+    }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .tool-tile {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 10px 4px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .tool-tile:active {
+      transform: scale(0.94);
+      border-color: #8b5cf6;
+      background: #1e1b4b;
+    }
+    .tool-tile-icon {
+      font-size: 20px;
+    }
+    .tool-tile-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+    .quiz-type-tabs {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      scrollbar-width: none;
+    }
+    .quiz-type-tabs::-webkit-scrollbar { display: none; }
+    .q-tab {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .q-tab.active {
+      background: #4f46e5;
+      color: #fff;
+      border-color: #6366f1;
+    }
+    .ans-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      justify-content: center;
+    }
+    .ans-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: #0f172a;
+      border: 1.5px solid #334155;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ans-btn.selected {
+      background: #10b981;
+      border-color: #34d399;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+    .btn-launch {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-launch:active {
+      transform: scale(0.97);
+    }
+    .btn-stop {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .btn-reveal {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .btn-reset {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      background: #475569;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .stat-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER REMOTE -->
+  <div class="remote-header">
+    <div>
+      <div class="remote-badge">
+        <span>🎮 REMOTE LỚP HỌC</span>
+        <span id="remote-class-code" class="remote-code">1234</span>
+      </div>
+      <div id="remote-status" class="remote-status" style="margin-top: 4px;">Đang kết nối Cloud...</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-size: 13px; font-weight: 700; color: #38bdf8;">
+        👥 <span id="remote-student-count">0</span> hs
+      </div>
+      <div style="font-size: 11px; color: #a5b4fc;" id="remote-session-info">Chờ phát</div>
+    </div>
+  </div>
+
+  <!-- PHẦN 1: ĐIỀU KHIỂN SLIDE -->
+  <div class="section-card">
+    <div class="section-title">
+      <span>📄 Chuyển Slide Bài Giảng</span>
+      <span id="slide-num-badge" style="color: #fbbf24; font-size: 12px;">Trang 1</span>
+    </div>
+    <div class="nav-grid">
+      <button id="btn-slide-prev" class="btn-nav">◀ Slide Trước</button>
+      <button id="btn-slide-next" class="btn-nav">Slide Tiếp ▶</button>
+    </div>
+  </div>
+
+  <!-- PHẦN 2: CÔNG CỤ CLASSPOINT TƯƠNG TÁC -->
+  <div class="section-card">
+    <div class="section-title">
+      <span>⚡ Công Cụ ClassPoint Nhanh</span>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-tile" id="tile-namepicker">
+        <span class="tool-tile-icon">🎡</span>
+        <span class="tool-tile-label">Gọi Tên</span>
+      </div>
+      <div class="tool-tile" id="tile-timer">
+        <span class="tool-tile-icon">⏱️</span>
+        <span class="tool-tile-label">Bấm Giờ</span>
+      </div>
+      <div class="tool-tile" id="tile-poll">
+        <span class="tool-tile-icon">📊</span>
+        <span class="tool-tile-label">Khảo Sát</span>
+      </div>
+      <div class="tool-tile" id="tile-leaderboard">
+        <span class="tool-tile-icon">🏆</span>
+        <span class="tool-tile-label">Vinh Danh</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHẦN 3: PHÁT CÂU HỎI TƯƠNG TÁC -->
+  <div class="section-card">
+    <div class="section-title">
+      <span>🚀 Phát Câu Hỏi Cho Học Sinh</span>
+      <span id="remote-quiz-state" style="color: #94a3b8; font-size: 11.5px;">Chưa phát</span>
+    </div>
+
+    <!-- Chọn loại câu hỏi -->
+    <div class="quiz-type-tabs">
+      <button class="q-tab active" data-type="mcq">📝 Trắc nghiệm</button>
+      <button class="q-tab" data-type="tf">⚖️ Đúng/Sai</button>
+      <button class="q-tab" data-type="wordcloud">☁️ Từ khóa</button>
+      <button class="q-tab" data-type="short">✍️ Tự luận</button>
+      <button class="q-tab" data-type="fillblank">✏️ Điền trống</button>
+      <button class="q-tab" data-type="drawing">🎨 Vẽ hình</button>
+      <button class="q-tab" data-type="image">📸 Chụp ảnh</button>
+    </div>
+
+    <!-- Chọn đáp án đúng cho Trắc nghiệm & Đúng/Sai -->
+    <div id="remote-ans-selector" class="ans-selector">
+      <button class="ans-btn selected" data-ans="A">A</button>
+      <button class="ans-btn" data-ans="B">B</button>
+      <button class="ans-btn" data-ans="C">C</button>
+      <button class="ans-btn" data-ans="D">D</button>
+    </div>
+
+    <!-- Nút hành động phát câu hỏi -->
+    <div id="remote-quiz-actions">
+      <button id="btn-remote-launch" class="btn-launch">
+        🚀 BẮT ĐẦU PHÁT CÂU HỎI
+      </button>
+
+      <div id="remote-active-controls" style="display: none; margin-top: 10px;">
+        <button id="btn-remote-end" class="btn-stop">⏹️ DỪNG NHẬN BÀI</button>
+        <button id="btn-remote-reveal" class="btn-reveal">🎉 CÔNG BỐ ĐÁP ÁN & THƯỞNG SAO ⭐</button>
+        <button id="btn-remote-reset" class="btn-reset">🔄 ĐẶT LẠI / TẠO CÂU MỚI</button>
+      </div>
+    </div>
+
+    <!-- Thống kê kết quả nhận bài -->
+    <div id="remote-stats-box" style="display: none; margin-top: 14px; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
+      <div style="font-size: 12.5px; font-weight: 700; color: #38bdf8; margin-bottom: 8px;">
+        📊 Tiến độ nộp bài: <span id="remote-submitted-count" style="color:#fbbf24; font-size:15px;">0</span> học sinh
+      </div>
+      <div id="remote-bars-list"></div>
+    </div>
+  </div>
+
+  <!-- MODAL VÒNG QUAY MAY MẮN TRÊN REMOTE -->
+  <div id="modal-remote-namepicker" class="modal-overlay" style="display: none;">
+    <div style="background: #1e293b; border: 2px solid #8b5cf6; border-radius: 18px; padding: 20px; width: 100%; max-width: 360px; text-align: center;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+        <span style="font-weight: 800; color: #c4b5fd;">🎡 GỌI TÊN MAY MẮN</span>
+        <button onclick="document.getElementById('modal-remote-namepicker').style.display='none'" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
+      </div>
+      <div id="remote-wheel-display" style="background:#0f172a; border:2px solid #6366f1; border-radius:12px; padding: 22px 10px; font-size:24px; font-weight:800; color:#fbbf24; margin: 14px 0;">
+        Bấm QUAY để chọn
+      </div>
+      <button id="btn-remote-spin" class="btn-launch" style="background: linear-gradient(135deg, #8b5cf6, #6366f1);">
+        🎰 BẮT ĐẦU QUAY
+      </button>
+      <button id="btn-remote-award-star" class="btn-reveal" style="display: none; margin-top: 10px;">
+        ⭐ Tặng 1 Sao
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL BẤM GIỜ TRÊN REMOTE -->
+  <div id="modal-remote-timer" class="modal-overlay" style="display: none;">
+    <div style="background: #1e293b; border: 2px solid #ef4444; border-radius: 18px; padding: 20px; width: 100%; max-width: 340px; text-align: center;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+        <span style="font-weight: 800; color: #fca5a5;">⏱️ HẸN GIỜ LÀM BÀI</span>
+        <button onclick="document.getElementById('modal-remote-timer').style.display='none'" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
+      </div>
+      <div id="remote-timer-display" style="font-family:monospace; font-size: 52px; font-weight: 900; color:#f87171; background:#0f172a; border-radius:10px; padding: 10px; margin: 12px 0;">
+        02:00
+      </div>
+      <div style="display:flex; gap:6px; justify-content:center; margin-bottom: 12px;">
+        <button class="timer-preset-btn" data-s="30">30s</button>
+        <button class="timer-preset-btn" data-s="60">1p</button>
+        <button class="timer-preset-btn" data-s="120">2p</button>
+        <button class="timer-preset-btn" data-s="300">5p</button>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="btn-rt-start" class="btn-launch" style="background:#ef4444; flex:1;">▶ Bắt Đầu</button>
+        <button id="btn-rt-reset" class="btn-reset" style="flex:1;">🔄 Đặt Lại</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BROKERS = [
+      'wss://broker.hivemq.com:8884/mqtt',
+      'wss://broker.emqx.io:8084/mqtt'
+    ];
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const classCode = (urlParams.get('code') || localStorage.getItem('classlive_teacher_room') || '1234').toUpperCase();
+    const cleanCode = classCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    document.getElementById('remote-class-code').textContent = classCode;
+    const remoteStatus = document.getElementById('remote-status');
+    const remoteStudentCount = document.getElementById('remote-student-count');
+    const remoteSessionInfo = document.getElementById('remote-session-info');
+
+    let mqttClient = null;
+    let students = new Map(); // id -> { name, stars, answer, lastSeen }
+    let currentQuiz = {
+      active: false,
+      type: 'mcq',
+      correctAnswer: 'A',
+      answers: {}
+    };
+
+    function initRemoteMqtt() {
+      remoteStatus.textContent = 'Đang kết nối Cloud...';
+      const broker = BROKERS[0];
+      const rmtId = `rmt_${cleanCode}_${Math.floor(Math.random() * 10000)}`;
+
+      mqttClient = mqtt.connect(broker, {
+        clientId: rmtId,
+        clean: true,
+        connectTimeout: 7000,
+        reconnectPeriod: 3000
+      });
+
+      mqttClient.on('connect', () => {
+        remoteStatus.textContent = '🟢 Đã kết nối với lớp';
+        remoteStatus.style.color = '#10b981';
+
+        // Subscribe các topic học sinh và quiz
+        const baseTopic = `classlive/hncanhlsts/${cleanCode}`;
+        mqttClient.subscribe([
+          `${baseTopic}/student/+`,
+          `${baseTopic}/answer/+`,
+          `${baseTopic}/quiz`,
+          `${baseTopic}/session_mode`,
+          `${baseTopic}/remote_cmd`
+        ], { qos: 0 });
+      });
+
+      mqttClient.on('message', (topic, message) => {
+        try {
+          const text = (typeof TextDecoder !== 'undefined') 
+            ? new TextDecoder('utf-8').decode(message) 
+            : message.toString();
+          const data = JSON.parse(text);
+
+          if (topic.includes('/student/')) {
+            const sId = data.id;
+            let s = students.get(sId);
+            if (!s) {
+              s = { name: data.name, stars: 0, answer: null, lastSeen: Date.now() };
+              students.set(sId, s);
+            } else {
+              s.name = data.name;
+              s.lastSeen = Date.now();
+            }
+            remoteStudentCount.textContent = students.size;
+
+          } else if (topic.includes('/answer/')) {
+            const sId = data.id;
+            currentQuiz.answers[sId] = data.answer;
+            const s = students.get(sId);
+            if (s) s.answer = data.answer;
+            updateRemoteStatsUI();
+
+          } else if (topic.endsWith('/session_mode')) {
+            if (data && data.active) {
+              remoteSessionInfo.textContent = data.mode === 'smart' ? '⚡ Slide Siêu Nét' : '📽️ Live Stream';
+              remoteSessionInfo.style.color = '#34d399';
+            } else {
+              remoteSessionInfo.textContent = 'Tạm dừng';
+              remoteSessionInfo.style.color = '#94a3b8';
+            }
+
+          } else if (topic.endsWith('/quiz')) {
+            if (data.action === 'start') {
+              currentQuiz.active = true;
+              currentQuiz.type = data.quizType || 'mcq';
+              currentQuiz.answers = {};
+              setRemoteQuizActiveUI(true);
+            } else if (data.action === 'stop') {
+              currentQuiz.active = false;
+              setRemoteQuizActiveUI(false, true);
+            } else if (data.action === 'dismiss') {
+              currentQuiz.active = false;
+              currentQuiz.answers = {};
+              setRemoteQuizActiveUI(false, false);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      });
+
+      mqttClient.on('offline', () => {
+        remoteStatus.textContent = 'Mất mạng Cloud...';
+        remoteStatus.style.color = '#ef4444';
+      });
+    }
+
+    // --- ĐIỀU KHIỂN SLIDE TỪ XA ---
+    let currentSlide = 1;
+    const btnSlideNext = document.getElementById('btn-slide-next');
+    const btnSlidePrev = document.getElementById('btn-slide-prev');
+    const slideNumBadge = document.getElementById('slide-num-badge');
+
+    if (btnSlideNext) {
+      btnSlideNext.onclick = () => {
+        currentSlide++;
+        slideNumBadge.textContent = `Trang ${currentSlide}`;
+        sendRemoteCmd({ command: 'next_slide', slide: currentSlide });
+      };
+    }
+    if (btnSlidePrev) {
+      btnSlidePrev.onclick = () => {
+        if (currentSlide > 1) currentSlide--;
+        slideNumBadge.textContent = `Trang ${currentSlide}`;
+        sendRemoteCmd({ command: 'prev_slide', slide: currentSlide });
+      };
+    }
+
+    function sendRemoteCmd(payload) {
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/remote_cmd`, JSON.stringify(payload), { qos: 0 });
+      }
+    }
+
+    // --- CHỌN DẠNG CÂU HỎI TRÊN REMOTE ---
+    const qTabs = document.querySelectorAll('.q-tab');
+    const ansSelector = document.getElementById('remote-ans-selector');
+    qTabs.forEach(tab => {
+      tab.onclick = () => {
+        qTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentQuiz.type = tab.dataset.type;
+        setupRemoteAnswerSelector();
+      };
+    });
+
+    function setupRemoteAnswerSelector() {
+      ansSelector.innerHTML = '';
+      if (currentQuiz.type === 'mcq') {
+        ansSelector.style.display = 'flex';
+        ['A', 'B', 'C', 'D'].forEach(opt => {
+          const b = document.createElement('button');
+          b.className = `ans-btn ${currentQuiz.correctAnswer === opt ? 'selected' : ''}`;
+          b.textContent = opt;
+          b.onclick = () => {
+            currentQuiz.correctAnswer = opt;
+            setupRemoteAnswerSelector();
+          };
+          ansSelector.appendChild(b);
+        });
+      } else if (currentQuiz.type === 'tf') {
+        ansSelector.style.display = 'flex';
+        ['Đúng', 'Sai'].forEach(opt => {
+          const b = document.createElement('button');
+          b.className = `ans-btn ${currentQuiz.correctAnswer === opt ? 'selected' : ''}`;
+          b.style.width = '80px';
+          b.textContent = opt;
+          b.onclick = () => {
+            currentQuiz.correctAnswer = opt;
+            setupRemoteAnswerSelector();
+          };
+          ansSelector.appendChild(b);
+        });
+      } else {
+        ansSelector.style.display = 'none';
+      }
+    }
+
+    // --- PHÁT CÂU HỎI / DỪNG / CÔNG BỐ / ĐẶT LẠI ---
+    const btnRemoteLaunch = document.getElementById('btn-remote-launch');
+    const remoteActiveControls = document.getElementById('remote-active-controls');
+    const btnRemoteEnd = document.getElementById('btn-remote-end');
+    const btnRemoteReveal = document.getElementById('btn-remote-reveal');
+    const btnRemoteReset = document.getElementById('btn-remote-reset');
+    const remoteQuizState = document.getElementById('remote-quiz-state');
+    const remoteStatsBox = document.getElementById('remote-stats-box');
+    const remoteSubmittedCount = document.getElementById('remote-submitted-count');
+    const remoteBarsList = document.getElementById('remote-bars-list');
+
+    function setRemoteQuizActiveUI(active, stopped = false) {
+      if (active) {
+        btnRemoteLaunch.style.display = 'none';
+        remoteActiveControls.style.display = 'block';
+        btnRemoteEnd.style.display = 'block';
+        btnRemoteReveal.style.display = 'block';
+        remoteQuizState.textContent = '🟢 Đang mở trả lời';
+        remoteQuizState.style.color = '#10b981';
+        remoteStatsBox.style.display = 'block';
+      } else if (stopped) {
+        btnRemoteEnd.style.display = 'none';
+        btnRemoteReveal.style.display = 'block';
+        remoteQuizState.textContent = '⏹️ Đã dừng nhận bài';
+        remoteQuizState.style.color = '#f59e0b';
+      } else {
+        btnRemoteLaunch.style.display = 'block';
+        remoteActiveControls.style.display = 'none';
+        remoteStatsBox.style.display = 'none';
+        remoteQuizState.textContent = 'Chưa phát';
+        remoteQuizState.style.color = '#94a3b8';
+      }
+      updateRemoteStatsUI();
+    }
+
+    btnRemoteLaunch.onclick = () => {
+      currentQuiz.active = true;
+      currentQuiz.answers = {};
+      students.forEach(s => { s.answer = null; });
+      setRemoteQuizActiveUI(true);
+
+      const payload = {
+        action: 'start',
+        quizType: currentQuiz.type,
+        options: currentQuiz.type === 'mcq' ? ['A', 'B', 'C', 'D'] : (currentQuiz.type === 'tf' ? ['Đúng', 'Sai'] : [])
+      };
+      mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify(payload), { qos: 0, retain: true });
+    };
+
+    btnRemoteEnd.onclick = () => {
+      currentQuiz.active = false;
+      setRemoteQuizActiveUI(false, true);
+      mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify({ action: 'stop' }), { qos: 0, retain: true });
+    };
+
+    btnRemoteReveal.onclick = () => {
+      btnRemoteReveal.style.display = 'none';
+      remoteQuizState.textContent = '🎉 Đã công bố kết quả';
+      remoteQuizState.style.color = '#6366f1';
+
+      students.forEach((student, id) => {
+        const studentAns = currentQuiz.answers[id];
+        const isCorrect = currentQuiz.correctAnswer ? (studentAns === currentQuiz.correctAnswer) : true;
+        if (isCorrect && currentQuiz.correctAnswer) {
+          student.stars = (student.stars || 0) + 1;
+        }
+        const payload = {
+          correctAnswer: currentQuiz.correctAnswer,
+          yourAnswer: studentAns,
+          isCorrect: isCorrect,
+          stars: student.stars || 0
+        };
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz_reveal`, JSON.stringify(payload), { qos: 0 });
+      });
+      updateRemoteStatsUI(true);
+    };
+
+    btnRemoteReset.onclick = () => {
+      currentQuiz.active = false;
+      currentQuiz.answers = {};
+      students.forEach(s => { s.answer = null; });
+      setRemoteQuizActiveUI(false, false);
+      mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify({ action: 'dismiss' }), { qos: 0, retain: true });
+    };
+
+    function updateRemoteStatsUI(revealed = false) {
+      const totalAnswers = Object.keys(currentQuiz.answers).length;
+      remoteSubmittedCount.textContent = totalAnswers;
+
+      if (currentQuiz.type === 'mcq' || currentQuiz.type === 'tf') {
+        const opts = currentQuiz.type === 'mcq' ? ['A', 'B', 'C', 'D'] : ['Đúng', 'Sai'];
+        let counts = {};
+        opts.forEach(o => counts[o] = 0);
+        Object.values(currentQuiz.answers).forEach(ans => {
+          if (counts[ans] !== undefined) counts[ans]++;
+        });
+
+        remoteBarsList.innerHTML = opts.map(opt => {
+          const count = counts[opt] || 0;
+          const pct = totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0;
+          const isRight = revealed && currentQuiz.correctAnswer === opt;
+          return `
+            <div class="stat-bar">
+              <span>\${isRight ? '⭐ ' : ''}<b>\${opt}</b>: \${count} bạn</span>
+              <span style="color:#a5b4fc; font-weight:700;">\${pct}%</span>
+            </div>
+          `;
+        }).join('');
+      } else {
+        remoteBarsList.innerHTML = `<div style="font-size:12px; color:#cbd5e1; padding:6px 0;">Đã nhận \${totalAnswers} bài nộp từ học sinh.</div>`;
+      }
+    }
+
+    // --- TIỆN ÍCH CLASSPOINT TRÊN REMOTE ---
+    // 1. Vòng quay gọi tên
+    const tileNamepicker = document.getElementById('tile-namepicker');
+    const modalNamepicker = document.getElementById('modal-remote-namepicker');
+    const remoteWheelDisplay = document.getElementById('remote-wheel-display');
+    const btnRemoteSpin = document.getElementById('btn-remote-spin');
+    const btnRemoteAwardStar = document.getElementById('btn-remote-award-star');
+    let luckyStudentId = null;
+
+    tileNamepicker.onclick = () => {
+      modalNamepicker.style.display = 'flex';
+      sendRemoteCmd({ command: 'open_name_picker' });
+    };
+
+    btnRemoteSpin.onclick = () => {
+      const studentArr = Array.from(students.entries());
+      if (studentArr.length === 0) {
+        remoteWheelDisplay.textContent = 'Chưa có học sinh online!';
+        return;
+      }
+      btnRemoteSpin.disabled = true;
+      btnRemoteAwardStar.style.display = 'none';
+
+      let count = 0;
+      let speed = 40;
+      function spin() {
+        const rand = studentArr[Math.floor(Math.random() * studentArr.length)];
+        remoteWheelDisplay.textContent = rand[1].name;
+        count++;
+        if (count < 25) {
+          speed += 6;
+          setTimeout(spin, speed);
+        } else {
+          luckyStudentId = rand[0];
+          remoteWheelDisplay.innerHTML = `🎉 <b>\${rand[1].name}</b>`;
+          btnRemoteSpin.disabled = false;
+          btnRemoteAwardStar.style.display = 'block';
+          sendRemoteCmd({ command: 'spin_winner', winner: rand[1].name, id: luckyStudentId });
+        }
+      }
+      spin();
+    };
+
+    btnRemoteAwardStar.onclick = () => {
+      if (luckyStudentId) {
+        const s = students.get(luckyStudentId);
+        if (s) s.stars = (s.stars || 0) + 1;
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/star/${luckyStudentId}`, JSON.stringify({
+          stars: (s ? s.stars : 1),
+          message: '🌟 Thầy/Cô vừa tặng bạn 1 Ngôi Sao trên Remote!'
+        }), { qos: 0 });
+        alert('⭐ Đã tặng 1 Sao cho bạn được gọi!');
+        btnRemoteAwardStar.style.display = 'none';
+      }
+    };
+
+    // 2. Bấm giờ
+    const tileTimer = document.getElementById('tile-timer');
+    const modalTimer = document.getElementById('modal-remote-timer');
+    const remoteTimerDisplay = document.getElementById('remote-timer-display');
+    const btnRtStart = document.getElementById('btn-rt-start');
+    const btnRtReset = document.getElementById('btn-rt-reset');
+    let timerSec = 120;
+    let timerRemainingSec = 120;
+    let timerRunning = false;
+    let timerInterval = null;
+
+    tileTimer.onclick = () => {
+      modalTimer.style.display = 'flex';
+      sendRemoteCmd({ command: 'open_timer' });
+    };
+
+    document.querySelectorAll('.timer-preset-btn').forEach(b => {
+      b.onclick = () => {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        btnRtStart.textContent = '▶ Bắt Đầu';
+        timerSec = parseInt(b.dataset.s, 10);
+        timerRemainingSec = timerSec;
+        renderTimerDisplay();
+      };
+    });
+
+    function renderTimerDisplay() {
+      const m = Math.floor(timerRemainingSec / 60);
+      const s = timerRemainingSec % 60;
+      remoteTimerDisplay.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    btnRtStart.onclick = () => {
+      if (timerRunning) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        btnRtStart.textContent = '▶ Bắt Đầu';
+      } else {
+        timerRunning = true;
+        btnRtStart.textContent = '⏸ Tạm Dừng';
+        timerInterval = setInterval(() => {
+          if (timerRemainingSec > 0) {
+            timerRemainingSec--;
+            renderTimerDisplay();
+          } else {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            btnRtStart.textContent = '▶ Bắt Đầu';
+            alert('⏰ HẾT THỜI GIAN!');
+          }
+        }, 1000);
+      }
+    };
+
+    btnRtReset.onclick = () => {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      btnRtStart.textContent = '▶ Bắt Đầu';
+      timerRemainingSec = timerSec;
+      renderTimerDisplay();
+    };
+
+    // 3. Khảo sát nhanh
+    document.getElementById('tile-poll').onclick = () => {
+      sendRemoteCmd({ command: 'open_quick_poll' });
+      alert('📊 Đã mở bảng Khảo Sát Nhanh trên màn hình chính của Thầy/Cô!');
+    };
+
+    // 4. Bảng cúp vinh danh
+    document.getElementById('tile-leaderboard').onclick = () => {
+      sendRemoteCmd({ command: 'open_leaderboard' });
+      alert('🏆 Đã mở Bảng Vinh Danh Cúp Vàng trên màn hình chính!');
+    };
+
+    initRemoteMqtt();
+  </script>
+</body>
+</html>
