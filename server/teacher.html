@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: rgba(30, 41, 59, 0.9);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .brand-badge {
+      background: var(--primary);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .class-code-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #312e81;
+      border: 1px solid #4338ca;
+      padding: 6px 16px;
+      border-radius: 50px;
+    }
+    .class-code-num {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #a5b4fc;
+    }
+    .container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    /* Slide Preview Box */
+    .slide-preview-box {
+      flex: 1;
+      background: #030712;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 420px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .slide-preview-img {
+      max-width: 100%;
+      max-height: 480px;
+      object-fit: contain;
+      border-radius: 6px;
+    }
+    .slide-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+    }
+    .btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #334155; color: #fff; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    
+    /* QR Code Card */
+    .qr-card {
+      text-align: center;
+      background: #0f172a;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+    .qr-img {
+      width: 180px;
+      height: 180px;
+      border-radius: 8px;
+      background: #fff;
+      padding: 6px;
+      margin: 10px auto;
+      display: block;
+    }
+    .join-link {
+      font-size: 12px;
+      color: #38bdf8;
+      word-break: break-all;
+    }
+
+    /* Student List */
+    .student-list {
+      flex: 1;
+      max-height: 220px;
+      overflow-y: auto;
+      list-style: none;
+    }
+    .student-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 13.5px;
+    }
+    .student-item.hand-raised {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    
+    /* Quiz Control */
+    .quiz-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .quiz-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .stat-card {
+      background: #0f172a;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+    .stat-label { font-size: 14px; font-weight: 700; color: #a5b4fc; }
+    .stat-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span>🖥️ BẢNG ĐIỀU KHIỂN GIÁO VIÊN</span>
+      <span class="brand-badge">Trình chiếu không màn chiếu</span>
+    </div>
+    <div class="class-code-badge">
+      <span>MÃ LỚP HỌC:</span>
+      <span id="class-code" class="class-code-num">----</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Cột trái: Xem trước bài giảng & Tương tác -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>📄 Slide Học sinh đang xem</span>
+        <span id="slide-info" style="color: var(--text-muted); font-size: 13px;">Trang 1 / 1</span>
+      </div>
+
+      <div class="slide-preview-box">
+        <img id="slide-img" class="slide-preview-img" src="" alt="Chưa có slide. Bật PowerPoint để tự động đồng bộ!" />
+      </div>
+
+      <div class="slide-controls">
+        <div style="display: flex; gap: 8px;">
+          <button id="btn-prev-slide" class="btn btn-secondary">◀ Slide trước</button>
+          <button id="btn-next-slide" class="btn btn-secondary">Slide kế ▶</button>
+        </div>
+        <div>
+          <button id="btn-upload-file" class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+            📁 Tải ảnh slide lên
+          </button>
+          <input type="file" id="file-input" accept="image/*" style="display: none;" />
+        </div>
+      </div>
+
+      <!-- Khu vực điều khiển câu hỏi trắc nghiệm -->
+      <div class="quiz-section">
+        <div class="panel-title">
+          <span>📝 Trắc nghiệm tương tác nhanh (A, B, C, D)</span>
+          <span id="quiz-status" style="font-size: 12px; color: var(--warning);">Chưa mở</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button id="btn-start-quiz" class="btn btn-success">🚀 Bắt đầu câu hỏi</button>
+          <button id="btn-stop-quiz" class="btn btn-danger" style="display: none;">⏹️ Thu bài / Đóng câu hỏi</button>
+        </div>
+
+        <div class="quiz-stats" id="quiz-stats">
+          <div class="stat-card">
+            <div class="stat-label">Đáp án A</div>
+            <div id="stat-a" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Đáp án B</div>
+            <div id="stat-b" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Đáp án C</div>
+            <div id="stat-c" class="stat-value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Đáp án D</div>
+            <div id="stat-d" class="stat-value">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cột phải: Mã QR và Danh sách Học sinh -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>📲 Học sinh quét mã để vào</span>
+      </div>
+
+      <div class="qr-card">
+        <img id="qr-code-img" class="qr-img" src="" alt="Mã QR lớp học" />
+        <div id="join-url" class="join-link">Đang tạo liên kết...</div>
+      </div>
+
+      <div class="panel-title" style="margin-top: 10px;">
+        <span>👥 Học sinh trong lớp (<span id="student-count">0</span>)</span>
+      </div>
+
+      <ul id="student-list" class="student-list">
+        <!-- Render học sinh động -->
+        <li style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">
+          Chưa có học sinh nào kết nối.<br>Bảo học sinh quét mã QR bên trên!
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    let classCode = '';
+    let currentSlide = 1;
+    let totalSlides = 1;
+    let activeQuiz = null;
+
+    // Tự động kiểm tra trạng thái từ Server mỗi 1.5 giây
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        // Cập nhật mã lớp
+        classCode = data.classCode;
+        document.getElementById('class-code').textContent = classCode;
+
+        // Cập nhật URL & QR Code
+        const hostIp = data.ips && data.ips.length > 0 ? data.ips[0].ip : window.location.hostname;
+        const joinUrl = `http://${hostIp}:${window.location.port}/?code=${classCode}`;
+        document.getElementById('join-url').textContent = joinUrl;
+        document.getElementById('qr-code-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(joinUrl)}`;
+
+        // Cập nhật Slide
+        if (data.slideImage) {
+          document.getElementById('slide-img').src = data.slideImage;
+          document.getElementById('slide-info').textContent = `Trang ${data.currentSlide} / ${data.totalSlides}`;
+        }
+
+        // Cập nhật Danh sách học sinh
+        const studentListEl = document.getElementById('student-list');
+        document.getElementById('student-count').textContent = data.students.length;
+        if (data.students.length > 0) {
+          studentListEl.innerHTML = data.students.map(s => `
+            <li class="student-item ${s.isHandRaised ? 'hand-raised' : ''}">
+              <span>${s.isHandRaised ? '✋ ' : '👤 '}${s.name}</span>
+              <span style="font-size: 11px; font-weight: bold; color: ${s.answer ? '#10b981' : '#64748b'};">
+                ${s.answer ? 'Đã chọn: ' + s.answer : (s.isHandRaised ? 'Giơ tay!' : 'Đang xem')}
+              </span>
+            </li>
+          `).join('');
+        }
+
+        // Thống kê câu hỏi trắc nghiệm
+        activeQuiz = data.activeQuiz;
+        if (activeQuiz) {
+          document.getElementById('quiz-status').textContent = '🟢 Đang mở trả lời';
+          document.getElementById('quiz-status').style.color = '#10b981';
+          document.getElementById('btn-start-quiz').style.display = 'none';
+          document.getElementById('btn-stop-quiz').style.display = 'inline-flex';
+
+          let counts = { A: 0, B: 0, C: 0, D: 0 };
+          Object.values(data.answers || {}).forEach(ans => {
+            if (counts[ans] !== undefined) counts[ans]++;
+          });
+          document.getElementById('stat-a').textContent = counts.A;
+          document.getElementById('stat-b').textContent = counts.B;
+          document.getElementById('stat-c').textContent = counts.C;
+          document.getElementById('stat-d').textContent = counts.D;
+        } else {
+          document.getElementById('quiz-status').textContent = 'Chưa mở';
+          document.getElementById('quiz-status').style.color = 'var(--warning)';
+          document.getElementById('btn-start-quiz').style.display = 'inline-flex';
+          document.getElementById('btn-stop-quiz').style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Lỗi lấy dữ liệu từ server:', err);
+      }
+    }
+
+    // Bắt đầu Quiz
+    document.getElementById('btn-start-quiz').addEventListener('click', async () => {
+      await fetch('/api/quiz/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ options: ['A', 'B', 'C', 'D'] })
+      });
+      fetchStatus();
+    });
+
+    // Dừng Quiz
+    document.getElementById('btn-stop-quiz').addEventListener('click', async () => {
+      await fetch('/api/quiz/stop', { method: 'POST' });
+      fetchStatus();
+    });
+
+    // Tải ảnh slide tự chọn
+    document.getElementById('file-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        await fetch('/api/slide', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slideNumber: currentSlide,
+            totalSlides: totalSlides,
+            imageBase64: event.target.result
+          })
+        });
+        fetchStatus();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Chuyển slide thủ công
+    document.getElementById('btn-next-slide').addEventListener('click', () => {
+      currentSlide++;
+      fetch('/api/slide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slideNumber: currentSlide, totalSlides: Math.max(currentSlide, totalSlides) })
+      });
+      fetchStatus();
+    });
+
+    document.getElementById('btn-prev-slide').addEventListener('click', () => {
+      if (currentSlide > 1) currentSlide--;
+      fetch('/api/slide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slideNumber: currentSlide, totalSlides: totalSlides })
+      });
+      fetchStatus();
+    });
+
+    setInterval(fetchStatus, 1500);
+    fetchStatus();
+  </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Lớp Học Trực Tuyến - Xem Slide Bài Giảng</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ========================================================
+       MÀN HÌNH 1: NHẬP MÃ LỚP & TÊN ĐỂ THAM GIA
+       ======================================================== -->
+  <div id="join-screen" class="screen">
+    <div class="join-card">
+      <div class="brand-badge">
+        <span class="icon">📡</span> ClassLive • Trình chiếu không màn chiếu
+      </div>
+      
+      <h1 class="join-title">Vào Lớp Học</h1>
+      <p class="join-subtitle">Xem bài giảng thời gian thực trên điện thoại của em</p>
+
+      <form id="join-form">
+        <div class="form-group">
+          <label class="form-label" for="class-code">Mã lớp học (Class Code)</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔑</span>
+            <input 
+              type="text" 
+              id="class-code" 
+              class="form-input class-code-input" 
+              placeholder="VD: 8899" 
+              maxlength="8" 
+              autocomplete="off" 
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="student-name">Họ và tên của em</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input 
+              type="text" 
+              id="student-name" 
+              class="form-input" 
+              placeholder="VD: Nguyễn Văn An" 
+              autocomplete="name" 
+              required
+            >
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <span>🚀 Vào Lớp Ngay</span>
+        </button>
+
+        <button type="button" id="btn-demo" class="btn-secondary">
+          <span>👁️ Trải nghiệm bài giảng mẫu (Demo)</span>
+        </button>
+      </form>
+
+      <div class="tip-box">
+        <span>💡</span>
+        <span><b>Mẹo:</b> Em có thể dùng 2 ngón tay phóng to/thu nhỏ bài giảng để đọc rõ chữ nhỏ!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MÀN HÌNH 2: XEM BÀI GIẢNG TRỰC TIẾP (SLIDE VIEWER)
+       ======================================================== -->
+  <div id="viewer-screen" class="screen hidden">
+    <!-- Header trên cùng -->
+    <header class="viewer-header">
+      <div class="header-left">
+        <span class="status-dot"></span>
+        <span id="class-badge" class="class-tag">LỚP HỌC</span>
+      </div>
+
+      <div class="header-center">
+        <span>📄 Trang:</span>
+        <span id="slide-counter">1/1</span>
+      </div>
+
+      <div class="header-right">
+        <button id="btn-fullscreen" class="btn-icon" title="Toàn màn hình">⛶</button>
+      </div>
+    </header>
+
+    <!-- Khu vực hiển thị Slide và cử chỉ Zoom -->
+    <main class="slide-viewport" id="slide-viewport">
+      <div class="zoom-hint" id="zoom-hint">
+        <span>🤏</span> Dùng 2 ngón tay hoặc nút bên phải để phóng to
+      </div>
+
+      <div class="slide-canvas-wrapper" id="slide-canvas-wrapper">
+        <img id="current-slide-img" class="slide-image" alt="Đang tải slide..." src="" />
+      </div>
+
+      <!-- Cụm nút điều khiển Zoom nhanh -->
+      <div class="zoom-controls">
+        <button id="btn-zoom-in" class="zoom-btn" title="Phóng to">➕</button>
+        <button id="btn-zoom-reset" class="zoom-btn" title="Vừa màn hình">⟲</button>
+        <button id="btn-zoom-out" class="zoom-btn" title="Thu nhỏ">➖</button>
+      </div>
+    </main>
+
+    <!-- Hộp câu hỏi trắc nghiệm khi Giáo viên kích hoạt -->
+    <div id="quiz-overlay" class="quiz-overlay">
+      <div class="quiz-header">
+        <span class="quiz-title-badge">CÂU HỎI TRẮC NGHIỆM</span>
+        <span id="quiz-timer" class="quiz-timer">⏱️ Đang mở</span>
+      </div>
+      <div id="quiz-options-container" class="quiz-grid">
+        <!-- Render các nút A, B, C, D động -->
+      </div>
+      <div id="quiz-submitted-msg" class="quiz-submitted-msg">
+        <!-- Thông báo sau khi nộp -->
+      </div>
+    </div>
+
+    <!-- Thanh tương tác dưới cùng của học sinh -->
+    <footer class="viewer-footer">
+      <button id="btn-raise-hand" class="action-btn raise-hand">
+        <span class="btn-icon-inner">✋</span>
+        <span>Giơ tay</span>
+      </button>
+
+      <button id="btn-reaction" class="action-btn">
+        <span class="btn-icon-inner">👍</span>
+        <span>Phản hồi</span>
+      </button>
+
+      <button id="btn-download-slide" class="action-btn">
+        <span class="btn-icon-inner">📥</span>
+        <span>Lưu slide</span>
+      </button>
+
+      <div style="font-size: 11px; color: var(--text-muted); text-align: right; max-width: 120px;">
+        <span id="sync-status-text">Đang đồng bộ</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Toast thông báo -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Scripts -->
+  <script src="js/viewer.js"></script>
+  <script src="js/connection.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
