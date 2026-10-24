@@ -1246,3 +1246,195 @@ body.mini-remote-mode #btn-open-mobile-remote,
 body.mini-remote-mode .ppt-helper-box {
   display: none !important;
 }
+
+/* ========================================================
+   CLASSPOINT PRESENTATION DOCK TOOLBAR & SUITE
+   ======================================================== */
+.cp-toolbar-dock {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 36px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.cp-toolbar-dock.minimized {
+  transform: translateX(-50%) translateY(80%);
+  opacity: 0.45;
+}
+.cp-toolbar-dock.minimized:hover {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.cp-tool-btn {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  width: 35px;
+  height: 35px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #334155;
+  font-size: 16px;
+  transition: all 0.16s ease;
+  position: relative;
+}
+
+.cp-tool-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  color: #0f172a;
+}
+
+.cp-tool-btn.active {
+  background: #e0e7ff;
+  color: #4338ca;
+  box-shadow: inset 0 -2.5px 0 #4f46e5;
+}
+
+.cp-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.15);
+  margin: 0 3px;
+}
+
+/* Modal Bảng Trắng (Whiteboard) */
+.whiteboard-container {
+  width: 96vw;
+  height: 92vh;
+  background: #ffffff;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+  border: 2px solid #6366f1;
+}
+
+.whiteboard-header {
+  background: #1e293b;
+  padding: 10px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: #fff;
+}
+
+.board-type-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.board-type-btn.active {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #818cf8;
+}
+
+/* Modal Vòng Quay May Mắn (Name Picker) */
+.name-picker-card {
+  background: #1e293b;
+  border: 2px solid #8b5cf6;
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 460px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.wheel-name-display {
+  background: #0f172a;
+  border: 2px solid #6366f1;
+  border-radius: 14px;
+  padding: 28px 16px;
+  margin: 18px 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: #fbbf24;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+  letter-spacing: 0.5px;
+}
+
+.wheel-name-display.celebrate {
+  animation: pulseGlow 1s infinite alternate;
+  color: #34d399;
+  border-color: #10b981;
+}
+
+@keyframes pulseGlow {
+  0% { transform: scale(1); box-shadow: 0 0 10px #10b981; }
+  100% { transform: scale(1.04); box-shadow: 0 0 24px #34d399; }
+}
+
+/* Modal Đồng Hồ Bấm Giờ (Timer) */
+.timer-card {
+  background: #1e293b;
+  border: 2px solid #ef4444;
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+}
+
+.timer-digits {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 64px;
+  font-weight: 900;
+  color: #f87171;
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 16px 0;
+  letter-spacing: 4px;
+  border: 2px solid #334155;
+}
+
+.timer-preset-btn {
+  background: #334155;
+  border: none;
+  color: #e2e8f0;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.timer-preset-btn:hover {
+  background: #ef4444;
+  color: #fff;
+}
