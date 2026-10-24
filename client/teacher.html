@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=3.5"></script>
-  <script src="https://meet.jit.si/external_api.js"></script>
+  <script src="js/mqtt.min.js?v=3.6"></script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -532,6 +531,7 @@
     }
 
     document.getElementById('btn-random-code').addEventListener('click', () => {
+      stopLiveStream();
       classCode = Math.floor(1000 + Math.random() * 9000).toString();
       localStorage.setItem('classlive_teacher_room', classCode);
       updateCodeUI();
@@ -541,6 +541,7 @@
     document.getElementById('btn-custom-code').addEventListener('click', () => {
       const custom = prompt('Nhập mã lớp bạn muốn (Ví dụ: 12A1, TOAN9, 1234):', classCode);
       if (custom && custom.trim()) {
+        stopLiveStream();
         classCode = custom.trim().toUpperCase();
         localStorage.setItem('classlive_teacher_room', classCode);
         updateCodeUI();
@@ -552,7 +553,6 @@
 
     let mqttClient = null;
     let students = new Map(); // studentId -> { name, isHandRaised, stars, currentAnswer, lastSeen }
-    let teacherJitsiApi = null;
 
     let currentQuiz = {
       active: false,
@@ -872,7 +872,7 @@
     };
 
     // ==========================================
-    // CHIA SẺ MÀN HÌNH BÀI GIẢNG QUA LIVE STREAM SFU
+    // CHIA SẺ MÀN HÌNH BÀI GIẢNG QUA VDO.NINJA (100% KHÔNG CẦN TÀI KHOẢN)
     // ==========================================
     btnStart.addEventListener('click', () => {
       startLiveStream();
@@ -884,7 +884,7 @@
 
     function startLiveStream() {
       const cleanCode = getCleanCode(classCode);
-      const roomName = `ClassLive-hncanhlsts-${cleanCode}`;
+      const streamId = 'ClassLive_hncanhlsts_' + cleanCode;
 
       teacherStreamFrame.innerHTML = '';
       teacherStreamFrame.style.display = 'block';
@@ -897,66 +897,25 @@
       statusDot.classList.add('active');
       statusText.textContent = `🟢 ĐANG PHÁT LIVE STREAM (MÃ: ${classCode})`;
 
-      const domain = "meet.jit.si";
-      const options = {
-        roomName: roomName,
-        width: "100%",
-        height: "440px",
-        parentNode: teacherStreamFrame,
-        userInfo: {
-          displayName: "Thầy/Cô Giáo (Host)"
-        },
-        configOverwrite: {
-          startWithAudioMuted: true,
-          startWithVideoMuted: true,
-          prejoinPageEnabled: false,
-          disableDeepLinking: true,
-          enableWelcomePage: false,
-          defaultRemoteDisplayName: 'Học sinh'
-        },
-        interfaceConfigOverwrite: {
-          TOOLBAR_BUTTONS: [
-            'desktop', 'microphone', 'camera', 'fullscreen',
-            'fodeviceselection', 'hangup', 'tileview'
-          ],
-          SHOW_JITSI_WATERMARK: false,
-          SHOW_WATERMARK_FOR_GUESTS: false,
-          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
-        }
-      };
+      // VDO.Ninja Publisher URL: Tự động yêu cầu chọn màn hình PowerPoint, không login, không giao diện thừa
+      const pushUrl = `https://vdo.ninja/?push=${streamId}&screenshare=1&screensharecontenthint=detail&autostart=1&meshcast=1&webcam=0&audio=0`;
 
-      try {
-        if (typeof JitsiMeetExternalAPI !== 'undefined') {
-          teacherJitsiApi = new JitsiMeetExternalAPI(domain, options);
-          teacherJitsiApi.addEventListener('videoConferenceJoined', () => {
-            console.log('[GV] Đã vào phòng Live Stream, tự động mở chia sẻ màn hình...');
-            setTimeout(() => {
-              if (teacherJitsiApi) {
-                teacherJitsiApi.executeCommand('toggleShareScreen');
-              }
-            }, 800);
-          });
-          teacherJitsiApi.addEventListener('readyToClose', () => {
-            stopLiveStream();
-          });
-        } else {
-          teacherStreamFrame.innerHTML = `<iframe src="https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false" style="width:100%;height:440px;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
-        }
-      } catch (err) {
-        console.error('Lỗi khởi tạo Jitsi:', err);
-        teacherStreamFrame.innerHTML = `<iframe src="https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false" style="width:100%;height:440px;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
-      }
+      teacherStreamFrame.innerHTML = `
+        <iframe src="${pushUrl}" 
+                allow="camera; microphone; display-capture; autoplay; fullscreen" 
+                style="width: 100%; height: 440px; border: none; border-radius: 8px; display: block;">
+        </iframe>
+        <div style="margin-top: 6px; text-align: center; font-size: 12px; color: #94a3b8;">
+          💡 <i>Trình duyệt sẽ hiện hộp thoại yêu cầu chọn màn hình (cửa sổ PowerPoint). Hãy bấm chọn và bấm <b>Chia sẻ</b>.</i>
+          <br>
+          <a href="${pushUrl}" target="_blank" style="color: #818cf8; text-decoration: underline; font-size: 11.5px; display: inline-block; margin-top: 4px;">
+            Mở cửa sổ chia sẻ ở tab riêng (nếu trình duyệt của bạn chặn khung nhúng)
+          </a>
+        </div>
+      `;
     }
 
     function stopLiveStream() {
-      if (teacherJitsiApi) {
-        try {
-          teacherJitsiApi.dispose();
-        } catch (e) {
-          console.error(e);
-        }
-        teacherJitsiApi = null;
-      }
       teacherStreamFrame.innerHTML = '';
       teacherStreamFrame.style.display = 'none';
       placeholder.style.display = 'block';
