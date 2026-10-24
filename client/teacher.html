@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=3.2"></script>
+  <script src="js/mqtt.min.js?v=3.3"></script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -672,7 +672,10 @@
 
       mqttClient.on('message', (topic, message) => {
         try {
-          const data = JSON.parse(message.toString());
+          const text = (typeof TextDecoder !== 'undefined') 
+            ? new TextDecoder('utf-8').decode(message) 
+            : message.toString();
+          const data = JSON.parse(text);
           const cleanCode = getCleanCode(classCode);
 
           if (topic.includes(`/student/`)) {
@@ -883,6 +886,7 @@
 
         previewVideo.srcObject = mediaStream;
         previewVideo.style.display = 'block';
+        previewVideo.play().catch(() => {});
         placeholder.style.display = 'none';
         previewBox.classList.add('broadcasting');
 
@@ -894,6 +898,9 @@
 
         mediaStream.getVideoTracks()[0].onended = () => { stopBroadcasting(); };
         startFrameCapture();
+        previewVideo.onloadeddata = () => {
+          captureAndBroadcast(true);
+        };
 
       } catch (err) {
         console.error('Lỗi chia sẻ:', err);
@@ -974,7 +981,8 @@
     function startFrameCapture() {
       if (captureInterval) clearInterval(captureInterval);
       lastThumbData = null;
-      setTimeout(() => captureAndBroadcast(true), 500);
+      setTimeout(() => captureAndBroadcast(true), 400);
+      setTimeout(() => captureAndBroadcast(true), 1200);
       captureInterval = setInterval(() => captureAndBroadcast(false), 1000);
     }
 

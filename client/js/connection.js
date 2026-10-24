@@ -86,7 +86,10 @@ class SlideConnection {
 
       this.client.on('message', (topic, message) => {
         try {
-          const payload = JSON.parse(message.toString());
+          const text = (typeof TextDecoder !== 'undefined') 
+            ? new TextDecoder('utf-8').decode(message) 
+            : message.toString();
+          const payload = JSON.parse(text);
           this.handleIncoming(topic, payload);
         } catch (e) {
           console.error('Lỗi đọc dữ liệu:', e);
