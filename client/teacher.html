@@ -385,6 +385,9 @@
       <button id="btn-random-code" class="btn-action-small" title="Tạo mã số ngẫu nhiên mới">🎲 Đổi mã khác</button>
       <button id="btn-custom-code" class="btn-action-small" title="Tự đặt mã theo tên lớp, ví dụ 12A1">✏️ Tự đặt tên</button>
       <button id="btn-open-leaderboard" class="btn-action-small" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; font-weight: 700; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;" title="Xem bảng xếp hạng học sinh nhiều sao">🏆 Bảng Vinh Danh</button>
+      <button id="btn-end-session" class="btn-action-small" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: #fff; font-weight: 700; border: none; padding: 6px 14px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);" title="Kết thúc buổi học và xóa sạch toàn bộ phiên trên máy chủ">
+        <span>🛑</span> <span>Kết Thúc Buổi Học</span>
+      </button>
       <button id="btn-clear-cache" class="btn-action-small" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);" title="Xóa cookies & làm sạch bộ nhớ tạm">🧹 Xóa Cookies / Cache</button>
       <button id="btn-export-csv" class="btn-action-small" style="background: #10b981; color: #fff; font-weight: 700; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;" title="Tải file Excel thống kê">📥 Xuất Báo Cáo</button>
     </div>
@@ -726,6 +729,66 @@
       localStorage.setItem('classlive_teacher_room', classCode);
       updateCodeUI();
 
+    // --- KẾT THÚC BUỔI HỌC VÀ XÓA SẠCH DỮ LIỆU PHIÊN (TRÊN MÁY VÀ SERVER) ---
+    const btnEndSession = document.getElementById('btn-end-session');
+    if (btnEndSession) {
+      btnEndSession.addEventListener('click', () => {
+        if (!confirm('Bạn có chắc muốn KẾT THÚC BUỔI HỌC không?\n\n- Phiên làm việc sẽ được đóng vĩnh viễn.\n- Mọi Slide, Câu hỏi và Dữ liệu trên Máy chủ đám mây (Server Broker) sẽ được XÓA SẠCH.\n- Mọi học sinh sẽ nhận thông báo kết thúc và tự động rời lớp.')) {
+          return;
+        }
+        endClassroomSession();
+      });
+    }
+
+    function endClassroomSession() {
+      const cleanCode = getCleanCode(classCode);
+      if (mqttClient && mqttClient.connected) {
+        // 1. Phát tín hiệu kết thúc lớp học tới toàn bộ học sinh
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/session_mode`, JSON.stringify({
+          active: false,
+          mode: 'ended',
+          message: 'Thầy/Cô đã kết thúc buổi học. Chào các em!',
+          timestamp: Date.now()
+        }), { qos: 0, retain: true });
+
+        // 2. XÓA SẠCH các dữ liệu lưu trữ (retained messages) trên server MQTT broker
+        // Gửi payload rỗng "" kèm retain: true là cơ chế chuẩn xóa trắng topic trên server
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, '', { qos: 0, retain: true });
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, '', { qos: 0, retain: true });
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/laser`, '', { qos: 0, retain: true });
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/pen`, '', { qos: 0, retain: true });
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/reaction`, '', { qos: 0, retain: true });
+        setTimeout(() => {
+          try {
+            mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/session_mode`, '', { qos: 0, retain: true });
+          } catch(e) {}
+        }, 500);
+      }
+
+      // 3. Dừng phát sóng màn hình
+      stopBroadcasting();
+
+      // 4. Xóa sạch dữ liệu bộ nhớ trình duyệt
+      try {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+          const c = cookies[i];
+          const eqPos = c.indexOf("=");
+          const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
+          if (name) {
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+            document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+          }
+        }
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {}
+
+      alert('✅ Đã kết thúc buổi học! Toàn bộ dữ liệu phiên làm việc trên Máy chủ và Trình duyệt đã được xóa sạch.');
+      window.location.reload();
+    }
+
+
     // Xóa cookies & cache giáo viên khi bấm nút
     const btnClearCache = document.getElementById('btn-clear-cache');
     if (btnClearCache) {
@@ -755,9 +818,18 @@
 
     // Tự động giải phóng khi đóng tab
     window.addEventListener('beforeunload', () => {
-      if (mqttClient) {
-        try { mqttClient.end(true); } catch(e) {}
+      if (mqttClient && mqttClient.connected) {
+        const cleanCode = getCleanCode(classCode);
+        // Xóa sạch dữ liệu retained trên server khi đóng trình duyệt
+        try {
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, '', { qos: 0, retain: true });
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, '', { qos: 0, retain: true });
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/session_mode`, JSON.stringify({ active: false, mode: 'ended' }), { qos: 0, retain: true });
+          mqttClient.end(true);
+        } catch(e) {}
       }
+      localStorage.clear();
+      sessionStorage.clear();
     });
 
       
@@ -1744,7 +1816,9 @@
           } else if (topic.includes(`/remote_cmd`)) {
             // Lệnh từ Remote điều khiển
             console.log('[GV] Nhận lệnh từ Remote:', data);
-            if (data.command === 'next_slide') {
+            if (data.command === 'end_session') {
+              endClassroomSession();
+            } else if (data.command === 'next_slide') {
               if (cpBtnNext) cpBtnNext.click();
             } else if (data.command === 'prev_slide') {
               if (cpBtnPrev) cpBtnPrev.click();
@@ -1904,7 +1978,7 @@
 
         const cleanCode = getCleanCode(classCode);
         if (mqttClient && mqttClient.connected) {
-          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify({ action: 'dismiss' }), { qos: 0, retain: true });
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, '', { qos: 0, retain: true });
         }
         updateStudentUI();
       });
@@ -2192,6 +2266,10 @@
       statusDot.classList.remove('active');
       statusText.textContent = `Đã dừng phát sóng (Mã: ${classCode})`;
       broadcastSessionMode('idle', false);
+      if (mqttClient && mqttClient.connected) {
+        const cleanCode = getCleanCode(classCode);
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, '', { qos: 0, retain: true });
+      }
     }
 
     // --- CHẾ ĐỘ 1: CHỤP SLIDE SIÊU NÉT (SMART DIFF) ---

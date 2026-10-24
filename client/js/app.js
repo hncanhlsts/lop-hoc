@@ -191,6 +191,27 @@ document.addEventListener('DOMContentLoaded', () => {
     currentSessionMode = sessionData;
     console.log('[Học sinh] Nhận trạng thái phát sóng từ GV:', sessionData);
 
+    if (sessionData && sessionData.mode === 'ended') {
+      // Giáo viên đã kết thúc buổi học!
+      destroyLiveStreamFrame();
+      closeAndResetQuiz();
+      if (currentSlideImg) currentSlideImg.style.display = 'none';
+      if (waitingCard) {
+        if (waitingTitle) waitingTitle.textContent = '👋 Buổi học đã kết thúc';
+        if (waitingDesc) waitingDesc.textContent = sessionData.message || 'Thầy/Cô đã đóng phòng học. Chúc các em học tập tốt!';
+        if (waitingSpinner) waitingSpinner.style.display = 'none';
+        if (waitingStatusIcon) {
+          waitingStatusIcon.style.display = 'block';
+          waitingStatusIcon.textContent = '🎓';
+        }
+        if (btnRetryConn) btnRetryConn.style.display = 'none';
+        waitingCard.style.display = 'flex';
+      }
+      if (syncStatusText) syncStatusText.textContent = '🏁 Buổi học đã kết thúc';
+      showToast('👋 Thầy/Cô đã kết thúc buổi học!');
+      return;
+    }
+
     if (sessionData && sessionData.active) {
       if (sessionData.mode === 'smart') {
         // Chế độ Slide Siêu Nét: tắt Jitsi, chỉ hiện ảnh slide
@@ -934,4 +955,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Tiện ích Toast thông báo đã chuyển lên trên ---
+});
+
+// Tự động xóa sạch cookies và bộ nhớ tạm khi học sinh đóng trình duyệt
+window.addEventListener('beforeunload', () => {
+  try {
+    if (typeof clearAllCookiesAndStorage === 'function') clearAllCookiesAndStorage();
+  } catch (e) {}
 });

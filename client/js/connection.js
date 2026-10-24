@@ -93,15 +93,32 @@ class SlideConnection {
         this.pingTimer = setInterval(() => this.sendPresence(), 10000);
       });
 
-      this.client.on('message', (topic, message) => {
+      this.client.on('message', (topic, message, packet) => {
         try {
           const text = (typeof TextDecoder !== 'undefined') 
             ? new TextDecoder('utf-8').decode(message) 
             : message.toString();
+
+          // 1. Khi nhận payload rỗng ("") -> Giáo viên đã xóa sạch topic trên Server Broker
+          if (!text || text.trim() === '') {
+            this.handleTopicCleared(topic);
+            return;
+          }
+
           const payload = JSON.parse(text);
+
+          // 2. Chặn tin nhắn cũ (stale message): nếu là retained message quá 30 phút thì loại bỏ
+          if (packet && packet.retain && payload && payload.timestamp) {
+            const ageMinutes = (Date.now() - payload.timestamp) / 60000;
+            if (ageMinutes > 30) {
+              console.warn('[MQTT] Đã tự động lọc bỏ retained message cũ:', topic, Math.round(ageMinutes) + ' phút trước');
+              return;
+            }
+          }
+
           this.handleIncoming(topic, payload);
         } catch (e) {
-          console.error('Lỗi đọc dữ liệu:', e);
+          console.error('Lỗi đọc dữ liệu từ broker:', e);
         }
       });
 
@@ -123,6 +140,17 @@ class SlideConnection {
     } catch (e) {
       console.error('Lỗi khởi tạo MQTT:', e);
       this.onStatusChange('error', 'Lỗi mạng.');
+    }
+  }
+
+  handleTopicCleared(topic) {
+    console.log('[MQTT] Server Broker đã xóa topic:', topic);
+    if (topic.endsWith('/slide')) {
+      this.onSlideUpdate({ stopped: true });
+    } else if (topic.endsWith('/quiz')) {
+      this.onQuizDismiss({ action: 'dismiss' });
+    } else if (topic.endsWith('/session_mode')) {
+      this.onSessionModeChange({ active: false, mode: 'ended' });
     }
   }
 

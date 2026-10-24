@@ -399,6 +399,20 @@
     </div>
   </div>
 
+  
+  <!-- PHẦN 4: KẾT THÚC BUỔI HỌC & ĐÓNG PHIÊN -->
+  <div class="section-card" style="border: 1.5px solid #ef4444; background: #1c1917; margin-top: 15px;">
+    <div class="section-title" style="color: #f87171;">
+      <span>🛑 KẾT THÚC BUỔI HỌC</span>
+    </div>
+    <p style="font-size: 11.5px; color: #94a3b8; margin: 0 0 10px 0; line-height: 1.4;">
+      Đóng vĩnh viễn phiên làm việc, xóa sạch dữ liệu bài giảng, câu hỏi và giải phóng phòng trên máy chủ Cloud Broker.
+    </p>
+    <button id="btn-remote-end-session" class="btn-stop" style="margin: 0; background: linear-gradient(135deg, #ef4444, #b91c1c); display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <span>🛑</span> <span>ĐÓNG LỚP & XÓA SẠCH DỮ LIỆU</span>
+    </button>
+  </div>
+
   <script>
     const BROKERS = [
   'wss://broker.emqx.io:8084/mqtt',
@@ -835,6 +849,46 @@
       sendRemoteCmd({ command: 'open_leaderboard' });
       alert('🏆 Đã mở Bảng Vinh Danh Cúp Vàng trên màn hình chính!');
     };
+
+    
+    // 5. Kết thúc buổi học từ xa & xóa sạch Server Broker
+    const btnRemoteEndSession = document.getElementById('btn-remote-end-session');
+    if (btnRemoteEndSession) {
+      btnRemoteEndSession.onclick = () => {
+        if (!confirm('Thầy/Cô có chắc chắn muốn KẾT THÚC BUỔI HỌC?\n\nToàn bộ dữ liệu bài giảng, câu hỏi và điểm danh trên Máy chủ Cloud Broker sẽ được XÓA SẠCH.')) {
+          return;
+        }
+        if (mqttClient && mqttClient.connected) {
+          const baseTopic = `classlive/hncanhlsts/${cleanCode}`;
+          // Gửi lệnh đóng tới màn hình máy tính của giáo viên
+          mqttClient.publish(`${baseTopic}/remote_cmd`, JSON.stringify({ command: 'end_session' }), { qos: 0 });
+          // Thông báo kết thúc tới học sinh
+          mqttClient.publish(`${baseTopic}/session_mode`, JSON.stringify({
+            mode: 'ended',
+            active: false,
+            message: 'Thầy/Cô đã kết thúc buổi học từ thiết bị điều khiển.',
+            timestamp: Date.now()
+          }), { qos: 0, retain: true });
+          // Xóa sạch retained topics trên Server Broker
+          mqttClient.publish(`${baseTopic}/slide`, '', { qos: 0, retain: true });
+          mqttClient.publish(`${baseTopic}/quiz`, '', { qos: 0, retain: true });
+          mqttClient.publish(`${baseTopic}/laser`, '', { qos: 0, retain: true });
+          mqttClient.publish(`${baseTopic}/pen`, '', { qos: 0, retain: true });
+          
+          setTimeout(() => {
+            try {
+              mqttClient.publish(`${baseTopic}/session_mode`, '', { qos: 0, retain: true });
+            } catch(e) {}
+            sessionStorage.clear();
+            localStorage.removeItem('classlive_teacher_room');
+            alert('✅ Đã kết thúc buổi học! Toàn bộ dữ liệu phiên trên Máy chủ đã được xóa sạch.');
+            window.location.reload();
+          }, 500);
+        } else {
+          alert('Không thể kết nối máy chủ để xóa dữ liệu. Vui lòng kiểm tra lại mạng.');
+        }
+      };
+    }
 
     initRemoteMqtt();
   </script>
