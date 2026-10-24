@@ -342,6 +342,10 @@ document.addEventListener('DOMContentLoaded', () => {
           if (waitingCard) waitingCard.style.display = 'none';
         };
         currentSlideImg.src = slideData.imageUrl;
+      if (currentSlideImg.complete && currentSlideImg.naturalWidth > 0) {
+        currentSlideImg.style.display = 'block';
+        if (waitingCard) waitingCard.style.display = 'none';
+      }
       }
       destroyLiveStreamFrame();
       if (slideCounter) {
