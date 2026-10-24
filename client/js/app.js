@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Xử lý Đăng nhập vào lớp ---
   joinForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const roomCode = classCodeInput.value.trim().toUpperCase() || 'LOPHOC';
+    const roomCode = classCodeInput.value.trim().toUpperCase() || '8899';
     const name = studentNameInput.value.trim() || 'Học sinh';
 
     localStorage.setItem('classpoint_student_name', name);

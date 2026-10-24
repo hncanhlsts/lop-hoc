@@ -23,12 +23,15 @@ class SlideConnection {
     this.studentName = studentName || 'Học sinh';
     this.isDemoMode = isDemo;
 
+    const cleanCode = (roomCode || '8899').trim().toLowerCase();
+    this.teacherPeerId = `hncanhlsts-class-${cleanCode}`;
+
     if (this.isDemoMode) {
       this.initDemoMode();
       return;
     }
 
-    this.onStatusChange('connecting', 'Đang kết nối tới bài giảng của Giáo viên...');
+    this.onStatusChange('connecting', `Đang kết nối tới Lớp ${cleanCode.toUpperCase()} của Giáo viên...`);
 
     try {
       // Khởi tạo Peer WebRTC cho học sinh

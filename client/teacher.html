@@ -16,6 +16,7 @@
       --text-muted: #94a3b8;
       --success: #10b981;
       --danger: #ef4444;
+      --warning: #f59e0b;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -29,10 +30,12 @@
     header {
       background: rgba(30, 41, 59, 0.95);
       border-bottom: 1px solid var(--border);
-      padding: 14px 24px;
+      padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
     }
     .brand {
       display: flex;
@@ -41,15 +44,54 @@
       font-size: 18px;
       font-weight: 700;
     }
+    
+    /* MÃ LỚP HỌC TRÊN HEADER - CỰC KỲ NỔI BẬT */
+    .class-code-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #312e81;
+      border: 2px solid #6366f1;
+      padding: 6px 18px;
+      border-radius: 50px;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+    }
+    .class-code-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #c7d2fe;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .class-code-value {
+      font-size: 26px;
+      font-weight: 900;
+      color: #fbbf24;
+      letter-spacing: 3px;
+    }
+    .btn-change-code {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #e0e7ff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-change-code:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
     .status-badge {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: #1e1b4b;
-      border: 1px solid #4338ca;
-      padding: 6px 16px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      padding: 6px 14px;
       border-radius: 50px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
     }
     .status-dot {
@@ -62,6 +104,7 @@
       background: var(--success);
       box-shadow: 0 0 10px var(--success);
     }
+
     .container {
       flex: 1;
       display: grid;
@@ -88,6 +131,7 @@
       align-items: center;
       justify-content: space-between;
     }
+
     /* Control Toolbar */
     .top-controls {
       display: flex;
@@ -96,7 +140,7 @@
       flex-wrap: wrap;
     }
     .btn {
-      padding: 12px 20px;
+      padding: 12px 22px;
       border-radius: 10px;
       border: none;
       font-size: 15px;
@@ -117,8 +161,6 @@
       background: #ef4444;
       color: #fff;
     }
-    .btn-secondary { background: #334155; color: #fff; }
-    .btn-secondary:hover { background: #475569; }
 
     /* Video & Preview Box */
     .preview-box {
@@ -163,14 +205,27 @@
       font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+    }
+    .big-code-display {
+      background: #1e1b4b;
+      border: 1.5px solid #6366f1;
+      padding: 8px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .big-code-number {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: #fbbf24;
     }
     .link-box {
       background: #1e293b;
-      padding: 10px;
+      padding: 8px;
       border-radius: 8px;
       color: #38bdf8;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       word-break: break-all;
       margin-bottom: 10px;
@@ -189,7 +244,7 @@
     .student-list-container {
       flex: 1;
       overflow-y: auto;
-      max-height: 250px;
+      max-height: 230px;
     }
     .student-item {
       display: flex;
@@ -212,6 +267,14 @@
     <div class="brand">
       <span>🖥️ BẢNG ĐIỀU KHIỂN TRÌNH CHIẾU GIÁO VIÊN</span>
     </div>
+
+    <!-- MÃ LỚP HỌC CHO GIÁO VIÊN ĐỌC CHO HỌC SINH -->
+    <div class="class-code-badge">
+      <span class="class-code-label">🔑 Mã Lớp Học:</span>
+      <span id="header-class-code" class="class-code-value">8899</span>
+      <button id="btn-edit-code" class="btn-change-code" title="Đổi mã lớp">✏️ Đổi mã</button>
+    </div>
+
     <div class="status-badge">
       <span id="status-dot" class="status-dot"></span>
       <span id="status-text">Chưa phát sóng</span>
@@ -232,26 +295,32 @@
 
       <div class="preview-box" id="preview-box">
         <div id="placeholder" class="placeholder-text">
-          <p style="font-size: 40px; margin-bottom: 10px;">📽️</p>
-          <p><b>Khi bạn bấm nút màu xanh "BẬT TRÌNH CHIẾU":</b></p>
-          <p>Trình duyệt sẽ cho bạn chọn <b>Cửa sổ PowerPoint</b> bài giảng của bạn.</p>
-          <p>Hình ảnh slide sẽ tự động truyền ngay lập tức tới máy tính/điện thoại của học sinh!</p>
+          <p style="font-size: 44px; margin-bottom: 12px;">📽️</p>
+          <p style="font-size: 18px; color: #fff; margin-bottom: 8px;"><b>Cách dùng cực kỳ đơn giản:</b></p>
+          <p>1. Bảo học sinh vào web hoặc quét mã QR bên phải (Mã lớp: <b id="guide-code" style="color: #fbbf24;">8899</b>).</p>
+          <p>2. Bạn bấm nút màu xanh <b>"BẬT TRÌNH CHIẾU CHO HỌC SINH"</b> bên trên.</p>
+          <p>3. Chọn <b>Cửa sổ PowerPoint</b> bài giảng của bạn $\rightarrow$ Hình ảnh slide sẽ hiện ngay trên điện thoại/máy tính của học sinh!</p>
         </div>
         <video id="preview-video" autoplay playsinline muted style="display: none;"></video>
         <canvas id="capture-canvas" style="display: none;"></canvas>
       </div>
     </div>
 
-    <!-- Cột phải: Link trang web của bạn cho học sinh vào -->
+    <!-- Cột phải: Thông tin vào lớp dành cho học sinh -->
     <div class="panel">
       <div class="panel-title">
-        <span>📲 Trang Web của Học Sinh</span>
+        <span>📲 Thông Tin Cho Học Sinh Vào Lớp</span>
       </div>
 
       <div class="link-card">
-        <div class="link-label">Đường link học sinh truy cập:</div>
-        <div id="student-url" class="link-box">https://hncanhlsts.github.io/lop-hoc/</div>
+        <div class="link-label">ĐỌC MÃ NÀY CHO HỌC SINH:</div>
+        <div class="big-code-display">
+          <div id="sidebar-class-code" class="big-code-number">8899</div>
+        </div>
+
+        <div class="link-label">HOẶC QUÉT MÃ QR NÀY ĐỂ VÀO THẲNG:</div>
         <img id="qr-code" class="qr-img" src="" alt="Mã QR" />
+        <div id="student-url" class="link-box" style="margin-top: 10px;">Đang tạo link...</div>
       </div>
 
       <div class="panel-title" style="margin-top: 10px;">
@@ -261,7 +330,7 @@
       <div class="student-list-container">
         <ul id="student-list" style="list-style: none;">
           <li style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">
-            Chưa có học sinh nào kết nối.<br>Học sinh vào trang web sẽ hiện tên ở đây.
+            Chưa có học sinh nào kết nối.<br>Học sinh nhập mã hoặc quét QR sẽ hiện tên tại đây.
           </li>
         </ul>
       </div>
@@ -269,15 +338,41 @@
   </div>
 
   <script>
-    const ROOM_ID = 'hncanhlsts-class-live';
-    const STUDENT_URL = 'https://hncanhlsts.github.io/lop-hoc/';
+    // Quản lý Mã Lớp Học (Mặc định 8899 hoặc lấy từ bộ nhớ)
+    let classCode = localStorage.getItem('classlive_teacher_code') || '8899';
 
-    // Render QR Code
-    document.getElementById('student-url').textContent = STUDENT_URL;
-    document.getElementById('qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(STUDENT_URL)}`;
+    function getRoomPeerId(code) {
+      return `hncanhlsts-class-${code.toLowerCase()}`;
+    }
+
+    function updateCodeUI() {
+      document.getElementById('header-class-code').textContent = classCode;
+      document.getElementById('sidebar-class-code').textContent = classCode;
+      document.getElementById('guide-code').textContent = classCode;
+
+      const studentUrl = `https://hncanhlsts.github.io/lop-hoc/?code=${classCode}`;
+      document.getElementById('student-url').textContent = studentUrl;
+      document.getElementById('qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(studentUrl)}`;
+    }
+
+    document.getElementById('btn-edit-code').addEventListener('click', () => {
+      const newCode = prompt('Nhập Mã Lớp Học mới (4 đến 6 chữ số):', classCode);
+      if (newCode && newCode.trim()) {
+        classCode = newCode.trim().toUpperCase();
+        localStorage.setItem('classlive_teacher_code', classCode);
+        updateCodeUI();
+        // Khởi tạo lại Peer với mã phòng mới
+        if (peer) {
+          peer.destroy();
+          initPeer();
+        }
+      }
+    });
+
+    updateCodeUI();
 
     let peer = null;
-    let connections = new Map(); // peerId -> conn
+    let connections = new Map(); // peerId -> { conn, name, isHandRaised }
     let mediaStream = null;
     let captureInterval = null;
 
@@ -293,12 +388,13 @@
     const captureCanvas = document.getElementById('capture-canvas');
     const ctx = captureCanvas.getContext('2d');
 
-    // Khởi tạo mạng WebRTC P2P (PeerJS)
+    // Khởi tạo kết nối P2P
     function initPeer() {
-      peer = new Peer(ROOM_ID, { debug: 1 });
+      const roomPeerId = getRoomPeerId(classCode);
+      peer = new Peer(roomPeerId, { debug: 1 });
 
       peer.on('open', (id) => {
-        console.log('Phòng trình chiếu sẵn sàng với ID:', id);
+        console.log('[GV] Phòng trình chiếu đã mở với ID:', id);
       });
 
       peer.on('connection', (conn) => {
@@ -307,8 +403,6 @@
         conn.on('open', () => {
           connections.set(studentPeerId, { conn: conn, name: 'Học sinh' });
           updateStudentUI();
-
-          // Gửi ảnh slide mới nhất ngay khi học sinh vừa vào
           sendCurrentFrame(conn);
         });
 
@@ -338,10 +432,7 @@
       });
 
       peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          // Nếu ID đã tồn tại thì tạo ID mới và kết nối lại
-          console.warn('ID phòng đang hoạt động');
-        }
+        console.warn('Lỗi Peer:', err);
       });
     }
 
@@ -351,7 +442,7 @@
         mediaStream = await navigator.mediaDevices.getDisplayMedia({
           video: {
             cursor: "always",
-            frameRate: { ideal: 5, max: 10 } // Tối ưu slide tĩnh, siêu mượt và không tốn mạng
+            frameRate: { ideal: 5, max: 10 }
           },
           audio: false
         });
@@ -367,21 +458,17 @@
         statusDot.classList.add('active');
         statusText.textContent = '🟢 ĐANG PHÁT SÓNG TRỰC TIẾP';
 
-        // Lắng nghe khi người dùng bấm nút Dừng chia sẻ của trình duyệt
         mediaStream.getVideoTracks()[0].onended = () => {
           stopBroadcasting();
         };
 
-        // Bắt đầu chụp và gửi ảnh slide định kỳ sang học sinh
         startFrameCapture();
 
       } catch (err) {
         console.error('Không thể chia sẻ màn hình:', err);
-        alert('Bạn đã hủy chọn màn hình trình chiếu.');
       }
     });
 
-    // Dừng phát sóng
     btnStop.addEventListener('click', () => {
       stopBroadcasting();
     });
@@ -404,11 +491,8 @@
       statusText.textContent = 'Đã dừng phát sóng';
     }
 
-    // Chụp khung hình slide và gửi cho toàn bộ học sinh
     function startFrameCapture() {
       if (captureInterval) clearInterval(captureInterval);
-
-      let lastFrameHash = '';
 
       captureInterval = setInterval(() => {
         if (!mediaStream || previewVideo.videoWidth === 0) return;
@@ -417,10 +501,8 @@
         captureCanvas.height = previewVideo.videoHeight;
         ctx.drawImage(previewVideo, 0, 0, captureCanvas.width, captureCanvas.height);
 
-        // Nén ảnh chất lượng cao 85% dạng JPEG
         const base64Image = captureCanvas.toDataURL('image/jpeg', 0.82);
 
-        // Gửi tới tất cả học sinh đang kết nối
         const payload = {
           type: 'SLIDE_CHANGE',
           imageUrl: base64Image,
@@ -432,7 +514,7 @@
             item.conn.send(payload);
           }
         });
-      }, 800); // Cập nhật mỗi 0.8 giây để bắt kịp từng thao tác chuyển slide
+      }, 800);
     }
 
     function sendCurrentFrame(conn) {
@@ -449,7 +531,7 @@
     function updateStudentUI() {
       studentCount.textContent = connections.size;
       if (connections.size === 0) {
-        studentList.innerHTML = `<li style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">Chưa có học sinh nào kết nối.<br>Học sinh vào trang web sẽ hiện tên ở đây.</li>`;
+        studentList.innerHTML = `<li style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">Chưa có học sinh nào kết nối.<br>Học sinh nhập mã hoặc quét QR sẽ hiện tên tại đây.</li>`;
         return;
       }
       let html = '';
@@ -466,7 +548,6 @@
       studentList.innerHTML = html;
     }
 
-    // Bắt đầu khởi tạo mạng P2P
     initPeer();
   </script>
 </body>
