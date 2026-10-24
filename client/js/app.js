@@ -18,8 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const slideCounter = document.getElementById('slide-counter');
   const syncStatusText = document.getElementById('sync-status-text');
   const slideViewport = document.getElementById('slide-viewport');
+  const liveStreamFrame = document.getElementById('live-stream-frame');
+  const currentSlideImg = document.getElementById('current-slide-img');
   const waitingCard = document.getElementById('waiting-card');
   const waitingTitle = document.getElementById('waiting-title');
+  const waitingDesc = document.getElementById('waiting-desc');
 
   // Controls
   const btnFullscreen = document.getElementById('btn-fullscreen');
@@ -64,6 +67,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Toast
   const toastEl = document.getElementById('toast');
+  function showToast(msg) {
+    if (!toastEl) return;
+    toastEl.innerHTML = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._timer);
+    toastEl._timer = setTimeout(() => {
+      toastEl.classList.remove('show');
+    }, 3200);
+  }
+  window.showToast = showToast;
 
   let currentRoomCode = "";
   let currentStudentName = "";
@@ -724,14 +737,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 350);
   });
 
-  // --- Tiện ích Toast thông báo ---
-  window.showToast = function(msg) {
-    if (!toastEl) return;
-    toastEl.innerHTML = msg;
-    toastEl.classList.add('show');
-    clearTimeout(toastEl._timer);
-    toastEl._timer = setTimeout(() => {
-      toastEl.classList.remove('show');
-    }, 3200);
-  };
+  // --- Tiện ích Toast thông báo đã chuyển lên trên ---
 });

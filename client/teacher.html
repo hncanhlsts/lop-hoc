@@ -648,6 +648,27 @@
   </div>
 
   <script>
+    var currentSlideIndex = 1;
+    var currentTool = 'cursor';
+    var slideAnnotCanvas = null;
+    var annotCtx = null;
+    var laserPointerDot = null;
+    var cpBtnNext = null;
+    var cpBtnPrev = null;
+    var cpBtnOverview = null;
+    var cpBtnCursor = null;
+    var cpBtnLaser = null;
+    var cpBtnPen = null;
+    var cpBtnHighlighter = null;
+    var cpBtnEraser = null;
+    var cpBtnWhiteboard = null;
+    var cpBtnAi = null;
+    var cpBtnTimer = null;
+    var cpBtnPoll = null;
+    var cpBtnNamepicker = null;
+    var cpBtnLeaderboard = null;
+    var cpBtnToggle = null;
+    var lastSentImage = null;
     const BROKERS = [
       'wss://broker.hivemq.com:8884/mqtt',
       'wss://broker.emqx.io:8084/mqtt'
@@ -861,26 +882,26 @@
     // CLASSPOINT PRESENTATION TOOLBAR & SUITE JAVASCRIPT
     // ========================================================
     const cpToolbar = document.getElementById('cp-toolbar-dock');
-    const cpBtnOverview = document.getElementById('cp-btn-overview');
-    const cpBtnPrev = document.getElementById('cp-btn-prev');
-    const cpBtnNext = document.getElementById('cp-btn-next');
-    const cpBtnCursor = document.getElementById('cp-btn-cursor');
-    const cpBtnLaser = document.getElementById('cp-btn-laser');
-    const cpBtnPen = document.getElementById('cp-btn-pen');
-    const cpBtnHighlighter = document.getElementById('cp-btn-highlighter');
-    const cpBtnEraser = document.getElementById('cp-btn-eraser');
-    const cpBtnWhiteboard = document.getElementById('cp-btn-whiteboard');
-    const cpBtnAi = document.getElementById('cp-btn-ai');
-    const cpBtnTimer = document.getElementById('cp-btn-timer');
-    const cpBtnPoll = document.getElementById('cp-btn-poll');
-    const cpBtnNamepicker = document.getElementById('cp-btn-namepicker');
-    const cpBtnLeaderboard = document.getElementById('cp-btn-leaderboard');
-    const cpBtnToggle = document.getElementById('cp-btn-toggle');
+    cpBtnOverview = document.getElementById('cp-btn-overview');
+    cpBtnPrev = document.getElementById('cp-btn-prev');
+    cpBtnNext = document.getElementById('cp-btn-next');
+    cpBtnCursor = document.getElementById('cp-btn-cursor');
+    cpBtnLaser = document.getElementById('cp-btn-laser');
+    cpBtnPen = document.getElementById('cp-btn-pen');
+    cpBtnHighlighter = document.getElementById('cp-btn-highlighter');
+    cpBtnEraser = document.getElementById('cp-btn-eraser');
+    cpBtnWhiteboard = document.getElementById('cp-btn-whiteboard');
+    cpBtnAi = document.getElementById('cp-btn-ai');
+    cpBtnTimer = document.getElementById('cp-btn-timer');
+    cpBtnPoll = document.getElementById('cp-btn-poll');
+    cpBtnNamepicker = document.getElementById('cp-btn-namepicker');
+    cpBtnLeaderboard = document.getElementById('cp-btn-leaderboard');
+    cpBtnToggle = document.getElementById('cp-btn-toggle');
 
-    const slideAnnotCanvas = document.getElementById('slide-annot-canvas');
-    const laserPointerDot = document.getElementById('laser-pointer-dot');
-    let annotCtx = null;
-    let currentTool = 'cursor'; // 'cursor' | 'laser' | 'pen' | 'highlighter' | 'eraser'
+    slideAnnotCanvas = document.getElementById('slide-annot-canvas');
+    laserPointerDot = document.getElementById('laser-pointer-dot');
+    annotCtx = null;
+    currentTool = 'cursor'; // 'cursor' | 'laser' | 'pen' | 'highlighter' | 'eraser'
     let isAnnotDrawing = false;
     let annotLastX = 0;
     let annotLastY = 0;
@@ -998,7 +1019,6 @@
     }
 
     // Slide Navigation (← →)
-    let currentSlideIndex = 1;
     if (cpBtnNext) {
       cpBtnNext.onclick = () => {
         currentSlideIndex++;
@@ -2014,7 +2034,7 @@
     const previewVideo = document.getElementById('preview-video');
     const captureCanvas = document.getElementById('capture-canvas');
     const ctx = captureCanvas.getContext('2d');
-    let lastSentImage = null;
+    lastSentImage = null;
     let mediaStream = null;
     let captureInterval = null;
 

@@ -243,3 +243,7 @@ class SlideConnection {
     return canvas.toDataURL('image/jpeg', 0.7);
   }
 }
+
+if (typeof window !== 'undefined') {
+  window.SlideConnection = SlideConnection;
+}
