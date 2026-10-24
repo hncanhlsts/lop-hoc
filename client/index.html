@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Lớp Học Trực Tuyến - Xem Slide Bài Giảng</title>
-  <link rel="stylesheet" href="css/style.css?v=4.9">
-  <script src="js/mqtt.min.js?v=4.9"></script>
+  <link rel="stylesheet" href="css/style.css?v=5.0">
+  <script src="js/mqtt.min.js?v=5.0"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
@@ -143,10 +143,27 @@
             <span class="btn-icon-inner">👍</span>
             <span>Phản hồi</span>
           </button>
+          <button id="btn-quiz-history" class="sidebar-action-btn" title="Xem lịch sử làm bài & điểm số">
+            <span class="btn-icon-inner">📊</span>
+            <span>Lịch sử</span>
+          </button>
           <button id="btn-download-slide" class="sidebar-action-btn" title="Tải ảnh slide này">
             <span class="btn-icon-inner">📥</span>
             <span>Lưu slide</span>
           </button>
+        </div>
+
+        <!-- Popover bảng chọn cảm xúc trực tiếp -->
+        <div id="reaction-popover" class="reaction-popover" style="display: none;">
+          <div class="reaction-popover-title">Thả cảm xúc tới Thầy/Cô:</div>
+          <div class="reaction-grid">
+            <button class="reaction-item-btn" data-reaction="👍 Hiểu bài"><span>👍</span><span>Hiểu bài</span></button>
+            <button class="reaction-item-btn" data-reaction="💡 Thú vị"><span>💡</span><span>Thú vị</span></button>
+            <button class="reaction-item-btn" data-reaction="🤔 Chưa hiểu lắm"><span>🤔</span><span>Chưa hiểu</span></button>
+            <button class="reaction-item-btn" data-reaction="⏩ Giảng nhanh quá"><span>⏩</span><span>Nhanh quá</span></button>
+            <button class="reaction-item-btn" data-reaction="❤️ Rất thích"><span>❤️</span><span>Rất thích</span></button>
+            <button class="reaction-item-btn" data-reaction="🙋 Em xin hỏi"><span>🙋</span><span>Xin hỏi</span></button>
+          </div>
         </div>
 
         <!-- 2. Hộp câu hỏi tương tác (Quiz Overlay / Container) -->
@@ -161,6 +178,15 @@
 
           <!-- Nội dung câu hỏi -->
           <div id="quiz-content-area">
+            <!-- Khung hiển thị đề bài & thông tin bộ ôn -->
+            <div id="quiz-prompt-card" class="quiz-prompt-card" style="display: none;">
+              <div class="quiz-prompt-meta">
+                <span id="quiz-deck-badge" class="quiz-deck-badge">Bộ ôn tập</span>
+                <span id="quiz-num-badge" class="quiz-num-badge">Câu 1/5</span>
+              </div>
+              <div id="quiz-question-title" class="quiz-question-title"></div>
+            </div>
+
             <!-- 1. Trắc nghiệm (A, B, C, D) & Đúng/Sai -->
             <div id="quiz-options-container" class="quiz-grid"></div>
 
@@ -248,8 +274,42 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <!-- Scripts (Cache-busting version 3.5) -->
-  <script src="js/connection.js?v=4.9"></script>
-  <script src="js/app.js?v=4.9"></script>
+  <!-- Modal Xem Lịch Sử Ôn Tập Của Học Sinh -->
+  <div id="quiz-history-modal" class="modal-overlay" style="display: none;">
+    <div class="quiz-history-card">
+      <div class="quiz-history-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">📊</span>
+          <span style="font-weight: 800; font-size: 15px; color: #f1f5f9;">Lịch Sử Ôn Tập & Điểm Số</span>
+        </div>
+        <button id="btn-close-history" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+      <div class="quiz-history-stats" id="history-summary-box">
+        <div class="hist-stat-pill">Tổng số câu: <b id="hist-total-count">0</b></div>
+        <div class="hist-stat-pill" style="color: #34d399;">Đúng: <b id="hist-correct-count">0</b></div>
+        <div class="hist-stat-pill" style="color: #f87171;">Sai: <b id="hist-wrong-count">0</b></div>
+        <div class="hist-stat-pill" style="color: #fbbf24;">Sao: <b id="hist-star-count">0</b> ⭐</div>
+      </div>
+      <div class="quiz-history-list" id="history-items-list">
+        <div style="text-align: center; color: #94a3b8; padding: 24px 0; font-size: 13px;">
+          Em chưa tham gia câu hỏi nào trong buổi học này.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner thông báo từ giáo viên -->
+  <div id="announcement-banner" class="announcement-banner" style="display: none;">
+    <div class="announcement-icon">📢</div>
+    <div class="announcement-content">
+      <div class="announcement-title">THÔNG BÁO TỪ THẦY/CÔ</div>
+      <div id="announcement-text" class="announcement-text"></div>
+    </div>
+    <button id="btn-close-announcement" class="announcement-close">✕</button>
+  </div>
+
+  <!-- Scripts (Cache-busting version 5.0) -->
+  <script src="js/connection.js?v=5.0"></script>
+  <script src="js/app.js?v=5.0"></script>
 </body>
 </html>

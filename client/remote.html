@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>🎮 Remote Điều Khiển Lớp Học - ClassLive</title>
-  <link rel="stylesheet" href="css/style.css?v=4.5">
-  <script src="js/mqtt.min.js?v=4.5"></script>
+  <link rel="stylesheet" href="css/style.css?v=5.0">
+  <script src="js/mqtt.min.js?v=5.0"></script>
   <style>
     body {
       background: #090d16;
@@ -309,6 +309,24 @@
     </div>
   </div>
 
+  <!-- PHẦN 2.5: ĐIỀU KHIỂN BỘ ÔN TẬP (DECK CONTROLLER) -->
+  <div class="section-card">
+    <div class="section-title">
+      <span>📚 Điều Khiển Bộ Ôn Tập</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+      <button id="btn-remote-deck-prev" class="btn-nav" style="padding: 10px; font-size: 13.5px;">◀ Câu Trước</button>
+      <button id="btn-remote-deck-next" class="btn-nav" style="padding: 10px; font-size: 13.5px;">Câu Tiếp ▶</button>
+    </div>
+    <button id="btn-remote-deck-launch" class="btn-launch" style="background: linear-gradient(135deg, #10b981, #059669); padding: 12px; font-size: 14.5px;">
+      🚀 PHÁT CÂU HỎI BỘ ÔN
+    </button>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+      <button id="btn-remote-lower-hands" class="btn-nav" style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: #f87171; font-size: 12.5px; padding: 8px;">✋ Hạ Tay Cả Lớp</button>
+      <button id="btn-remote-star-all" class="btn-nav" style="background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.4); color: #fbbf24; font-size: 12.5px; padding: 8px;">⭐ Tặng Sao Cả Lớp</button>
+    </div>
+  </div>
+
   <!-- PHẦN 3: PHÁT CÂU HỎI TƯƠNG TÁC -->
   <div class="section-card">
     <div class="section-title">
@@ -556,6 +574,35 @@
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/remote_cmd`, JSON.stringify(payload), { qos: 0 });
       }
+    }
+
+    // --- ĐIỀU KHIỂN BỘ ÔN TẬP TỪ XA TRÊN REMOTE ---
+    const btnRemoteDeckPrev = document.getElementById('btn-remote-deck-prev');
+    const btnRemoteDeckNext = document.getElementById('btn-remote-deck-next');
+    const btnRemoteDeckLaunch = document.getElementById('btn-remote-deck-launch');
+    const btnRemoteLowerHands = document.getElementById('btn-remote-lower-hands');
+    const btnRemoteStarAll = document.getElementById('btn-remote-star-all');
+
+    if (btnRemoteDeckPrev) {
+      btnRemoteDeckPrev.onclick = () => sendRemoteCmd({ command: 'deck_prev' });
+    }
+    if (btnRemoteDeckNext) {
+      btnRemoteDeckNext.onclick = () => sendRemoteCmd({ command: 'deck_next' });
+    }
+    if (btnRemoteDeckLaunch) {
+      btnRemoteDeckLaunch.onclick = () => sendRemoteCmd({ command: 'deck_launch' });
+    }
+    if (btnRemoteLowerHands) {
+      btnRemoteLowerHands.onclick = () => {
+        sendRemoteCmd({ command: 'lower_all_hands' });
+        alert('✋ Đã gửi lệnh hạ tay toàn bộ học sinh!');
+      };
+    }
+    if (btnRemoteStarAll) {
+      btnRemoteStarAll.onclick = () => {
+        sendRemoteCmd({ command: 'star_all' });
+        alert('⭐ Đã gửi lệnh tặng mỗi bạn 1 sao!');
+      };
     }
 
     // --- CHỌN DẠNG CÂU HỎI TRÊN REMOTE ---

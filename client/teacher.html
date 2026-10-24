@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=4.4"></script>
+  <script src="js/mqtt.min.js?v=5.0"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     :root {
@@ -516,43 +516,101 @@
           <span id="quiz-badge-status" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Chưa kích hoạt</span>
         </div>
 
-        <!-- Chọn dạng câu hỏi -->
-        <div class="type-tabs" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
-          <button class="type-tab active" data-type="mcq">📝 Trắc nghiệm (A,B,C,D)</button>
-          <button class="type-tab" data-type="tf">⚖️ Đúng / Sai</button>
-          <button class="type-tab" data-type="wordcloud">☁️ Đám Mây Từ (Word Cloud)</button>
-          <button class="type-tab" data-type="short">✍️ Trả Lời Ngắn (Short Answer)</button>
-          <button class="type-tab" data-type="fillblank">✏️ Điền Chỗ Trống</button>
-          <button class="type-tab" data-type="drawing">🎨 Vẽ Trên Slide</button>
-          <button class="type-tab" data-type="image">📸 Chụp Ảnh Bài Vở</button>
+        <!-- CHẾ ĐỘ: PHÁT THEO BỘ ÔN TẬP HOẶC PHÁT NHANH -->
+        <div style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
+          <button id="tab-mode-deck" class="deck-mode-tab active" style="flex: 1; padding: 9px 12px; border-radius: 8px; border: 1.5px solid #6366f1; background: #312e81; color: #fff; font-weight: 700; font-size: 13.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>📚 Trình Chiếu Bộ Ôn Tập</span>
+            <span id="deck-badge-counter" style="background: #fbbf24; color: #000; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 10px;">5 câu</span>
+          </button>
+          <button id="tab-mode-quick" class="deck-mode-tab" style="flex: 1; padding: 9px 12px; border-radius: 8px; border: 1.5px solid #334155; background: #1e293b; color: #94a3b8; font-weight: 700; font-size: 13.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>⚡ Phát Câu Hỏi Nhanh (ClassPoint)</span>
+          </button>
         </div>
 
-        <!-- Chọn đáp án đúng (để tự động chấm và thưởng sao) -->
-        <div class="correct-answer-selector" id="correct-ans-wrapper">
-          <span style="font-size: 13px; font-weight: 700; color: #a5b4fc;">Chọn đáp án ĐÚNG:</span>
-          <div id="ans-btn-group" style="display: flex; gap: 8px;">
-            <button class="ans-btn" data-ans="A">A</button>
-            <button class="ans-btn" data-ans="B">B</button>
-            <button class="ans-btn" data-ans="C">C</button>
-            <button class="ans-btn" data-ans="D">D</button>
+        <!-- 1. KHUNG TRÌNH CHIẾU BỘ ÔN TẬP (DECK PLAYER) -->
+        <div id="deck-player-box" class="deck-card">
+          <div class="deck-header-row">
+            <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 260px;">
+              <span style="font-size: 13px; font-weight: 700; color: #a5b4fc;">Chọn Bộ Ôn:</span>
+              <select id="deck-select" class="deck-select"></select>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button id="btn-open-deck-manager" class="btn-action-small" style="background: #3b82f6; color: #fff;" title="Thêm, sửa, hoặc nhập bộ câu hỏi mới">⚙️ Quản Lý Bộ Đề</button>
+            </div>
           </div>
-          <span style="font-size: 12px; color: var(--text-muted);">(Học sinh chọn đúng sẽ được tặng sao ⭐, chọn sai sẽ được động viên)</span>
+
+          <!-- Khung xem trước câu hỏi hiện tại trong bộ ôn -->
+          <div id="deck-question-preview-box" class="deck-question-box">
+            <div class="deck-question-head">
+              <span id="deck-q-num">CÂU 1 / 5</span>
+              <span id="deck-q-type" style="color: #fbbf24;">Trắc Nghiệm (MCQ)</span>
+            </div>
+            <div id="deck-q-text" class="deck-question-text">Đang tải câu hỏi...</div>
+            <div id="deck-q-options" class="deck-options-grid"></div>
+            <div id="deck-q-explanation" class="deck-explanation" style="display: none;"></div>
+          </div>
+
+          <!-- Nút điều hướng câu và phát bài -->
+          <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <div style="display: flex; gap: 6px;">
+              <button id="btn-deck-prev" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;" title="Câu trước">◀ Câu Trước</button>
+              <button id="btn-deck-next" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;" title="Câu tiếp theo">Câu Tiếp ▶</button>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button id="btn-deck-launch" class="btn btn-primary" style="padding: 10px 18px; font-size: 14px; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                🚀 Phát Câu Này Cho Lớp
+              </button>
+              <button id="btn-deck-end" class="btn btn-stop" style="display: none; padding: 10px 16px; font-size: 13px;">
+                ⏹️ Dừng Nhận Bài
+              </button>
+              <button id="btn-deck-reveal" class="btn btn-warning" style="display: none; padding: 10px 16px; font-size: 13px;">
+                🎉 Công Bố Đáp Án & Thưởng Sao ⭐
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- Nút hành động giao câu hỏi -->
-        <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center;">
-          <button id="btn-launch-quiz" class="btn btn-primary" style="padding: 12px 22px; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); cursor: pointer; display: flex; align-items: center; gap: 8px;">
-            <span>🚀 Bắt Đầu Phát: <b id="launch-type-label">Trắc Nghiệm (A,B,C,D)</b> Cho Học Sinh</span>
-          </button>
-          <button id="btn-end-quiz" class="btn btn-stop" style="display: none; padding: 12px 18px; font-size: 14px;">
-            ⏹️ Dừng Nhận Bài
-          </button>
-          <button id="btn-reveal-quiz" class="btn btn-warning" style="display: none; padding: 12px 18px; font-size: 14px;">
-            🎉 Công Bố Đáp Án & Thưởng Sao ⭐
-          </button>
-          <button id="btn-reset-quiz" class="btn btn-secondary" style="display: none; padding: 12px 18px; font-size: 14px; background: #475569; color: #fff; border: none; border-radius: 8px; cursor: pointer;">
-            🔄 Đặt Lại / Tạo Câu Mới
-          </button>
+        <!-- 2. KHUNG PHÁT CÂU HỎI NHANH (QUICK QUIZ BOX) -->
+        <div id="quick-quiz-box" style="display: none;">
+          <!-- Chọn dạng câu hỏi -->
+          <div class="type-tabs" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+            <button class="type-tab active" data-type="mcq">📝 Trắc nghiệm (A,B,C,D)</button>
+            <button class="type-tab" data-type="tf">⚖️ Đúng / Sai</button>
+            <button class="type-tab" data-type="wordcloud">☁️ Đám Mây Từ (Word Cloud)</button>
+            <button class="type-tab" data-type="short">✍️ Trả Lời Ngắn (Short Answer)</button>
+            <button class="type-tab" data-type="fillblank">✏️ Điền Chỗ Trống</button>
+            <button class="type-tab" data-type="drawing">🎨 Vẽ Trên Slide</button>
+            <button class="type-tab" data-type="image">📸 Chụp Ảnh Bài Vở</button>
+          </div>
+
+          <!-- Chọn đáp án đúng (để tự động chấm và thưởng sao) -->
+          <div class="correct-answer-selector" id="correct-ans-wrapper">
+            <span style="font-size: 13px; font-weight: 700; color: #a5b4fc;">Chọn đáp án ĐÚNG:</span>
+            <div id="ans-btn-group" style="display: flex; gap: 8px;">
+              <button class="ans-btn" data-ans="A">A</button>
+              <button class="ans-btn" data-ans="B">B</button>
+              <button class="ans-btn" data-ans="C">C</button>
+              <button class="ans-btn" data-ans="D">D</button>
+            </div>
+            <span style="font-size: 12px; color: var(--text-muted);">(Học sinh chọn đúng sẽ được tặng sao ⭐, chọn sai sẽ được động viên)</span>
+          </div>
+
+          <!-- Nút hành động giao câu hỏi -->
+          <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center;">
+            <button id="btn-launch-quiz" class="btn btn-primary" style="padding: 12px 22px; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <span>🚀 Bắt Đầu Phát: <b id="launch-type-label">Trắc Nghiệm (A,B,C,D)</b> Cho Học Sinh</span>
+            </button>
+            <button id="btn-end-quiz" class="btn btn-stop" style="display: none; padding: 12px 18px; font-size: 14px;">
+              ⏹️ Dừng Nhận Bài
+            </button>
+            <button id="btn-reveal-quiz" class="btn btn-warning" style="display: none; padding: 12px 18px; font-size: 14px;">
+              🎉 Công Bố Đáp Án & Thưởng Sao ⭐
+            </button>
+            <button id="btn-reset-quiz" class="btn btn-secondary" style="display: none; padding: 12px 18px; font-size: 14px; background: #475569; color: #fff; border: none; border-radius: 8px; cursor: pointer;">
+              🔄 Đặt Lại / Tạo Câu Mới
+            </button>
+          </div>
         </div>
 
         <!-- Hướng dẫn điều khiển khi đang chiếu PowerPoint -->
@@ -639,6 +697,19 @@
 
       <div class="panel-title" style="margin-top: 10px;">
         <span>👥 Học sinh trong lớp (<span id="student-count">0</span>)</span>
+      </div>
+
+      <!-- THANH TƯƠNG TÁC NHANH VỚI LỚP HỌC -->
+      <div style="display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap;">
+        <button id="btn-lower-all-hands" style="flex: 1; padding: 6px 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;" title="Hạ tay toàn bộ học sinh đang giơ">
+          ✋ Hạ tay tất cả
+        </button>
+        <button id="btn-broadcast-announcement" style="flex: 1; padding: 6px 10px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #a5b4fc; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;" title="Gửi thông báo tức thì đến toàn lớp">
+          📢 Nhắn thông báo
+        </button>
+        <button id="btn-star-all" style="padding: 6px 10px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;" title="Tặng mỗi bạn 1 sao">
+          ⭐+1 Cả lớp
+        </button>
       </div>
 
       <div class="student-list-container">
@@ -1642,6 +1713,726 @@
     const shortAnswersWrapper = document.getElementById('short-answers-wrapper');
     const shortAnswersGrid = document.getElementById('short-answers-grid');
 
+    // ==========================================
+    // KHAI BÁO BỘ ÔN TẬP MẪU & QUẢN LÝ BỘ ĐỀ
+    // ==========================================
+    const DEFAULT_REVIEW_SETS = [
+      {
+        id: 'bio_deck',
+        name: 'KHTN & Sinh Học: Tế bào và Quang hợp (5 câu)',
+        questions: [
+          {
+            type: 'mcq',
+            question: 'Bào quan nào sau đây là nơi diễn ra quá trình quang hợp ở tế bào thực vật?',
+            options: [
+              { key: 'A', text: 'Ti thể' },
+              { key: 'B', text: 'Lục lạp' },
+              { key: 'C', text: 'Ribosome' },
+              { key: 'D', text: 'Không bào' }
+            ],
+            correctAnswer: 'B',
+            explanation: 'Lục lạp chứa chất diệp lục giúp hấp thụ năng lượng ánh sáng để tổng hợp chất hữu cơ.'
+          },
+          {
+            type: 'mcq',
+            question: 'Sản phẩm của quá trình quang hợp gồm những chất nào sau đây?',
+            options: [
+              { key: 'A', text: 'Glucose và Oxygen' },
+              { key: 'B', text: 'Nước và Carbon dioxide' },
+              { key: 'C', text: 'Glucose và Nước' },
+              { key: 'D', text: 'Carbon dioxide và Oxygen' }
+            ],
+            correctAnswer: 'A',
+            explanation: 'Phương trình quang hợp tổng quát: Nước + Carbon dioxide + Ánh sáng -> Glucose + Oxygen.'
+          },
+          {
+            type: 'mcq',
+            question: 'Bào quan nào được ví như "nhà máy năng lượng" của tế bào?',
+            options: [
+              { key: 'A', text: 'Bộ máy Golgi' },
+              { key: 'B', text: 'Lục lạp' },
+              { key: 'C', text: 'Ti thể' },
+              { key: 'D', text: 'Nhân tế bào' }
+            ],
+            correctAnswer: 'C',
+            explanation: 'Ti thể là nơi diễn ra hô hấp tế bào, tạo ra phần lớn phân tử ATP cung cấp năng lượng.'
+          },
+          {
+            type: 'tf',
+            question: 'Đúng hay Sai: Tế bào động vật có thành tế bào bằng cellulose giống tế bào thực vật.',
+            options: [
+              { key: 'Đúng', text: 'Đúng' },
+              { key: 'Sai', text: 'Sai' }
+            ],
+            correctAnswer: 'Sai',
+            explanation: 'Tế bào động vật không có thành cellulose, chỉ có màng sinh chất mềm dẻo.'
+          },
+          {
+            type: 'mcq',
+            question: 'Sắc tố quang hợp có màu xanh lục ở lá cây được gọi là gì?',
+            options: [
+              { key: 'A', text: 'Carotenoid' },
+              { key: 'B', text: 'Diệp lục (Chlorophyll)' },
+              { key: 'C', text: 'Anthocyanin' },
+              { key: 'D', text: 'Hemoglobin' }
+            ],
+            correctAnswer: 'B',
+            explanation: 'Diệp lục hấp thụ ánh sáng xanh dương và đỏ, phản xạ ánh sáng lục nên lá có màu xanh.'
+          }
+        ]
+      },
+      {
+        id: 'math_deck',
+        name: 'Toán Học: Ôn tập Hàm số & Hình học (5 câu)',
+        questions: [
+          {
+            type: 'mcq',
+            question: 'Đồ thị của hàm số bậc nhất y = ax + b (a ≠ 0) là hình gì?',
+            options: [
+              { key: 'A', text: 'Một đường cong parabol' },
+              { key: 'B', text: 'Một đường thẳng' },
+              { key: 'C', text: 'Một đường tròn' },
+              { key: 'D', text: 'Một đường hyperbol' }
+            ],
+            correctAnswer: 'B',
+            explanation: 'Hàm số bậc nhất y = ax + b có đồ thị luôn là một đường thẳng trong mặt phẳng tọa độ.'
+          },
+          {
+            type: 'mcq',
+            question: 'Tổng ba góc trong một tam giác bất kỳ luôn bằng bao nhiêu độ?',
+            options: [
+              { key: 'A', text: '90°' },
+              { key: 'B', text: '180°' },
+              { key: 'C', text: '270°' },
+              { key: 'D', text: '360°' }
+            ],
+            correctAnswer: 'B',
+            explanation: 'Định lý cơ bản trong hình học Euclid: Tổng ba góc của một tam giác luôn bằng 180°.'
+          },
+          {
+            type: 'mcq',
+            question: 'Công thức tính diện tích hình tròn bán kính R là:',
+            options: [
+              { key: 'A', text: 'S = 2πR' },
+              { key: 'B', text: 'S = πR²' },
+              { key: 'C', text: 'S = 4πR²' },
+              { key: 'D', text: 'S = πR' }
+            ],
+            correctAnswer: 'B',
+            explanation: 'Diện tích hình tròn là S = πR², còn chu vi là C = 2πR.'
+          },
+          {
+            type: 'tf',
+            question: 'Đúng hay Sai: Phương trình x² + 1 = 0 có hai nghiệm phân biệt trên tập số thực R.',
+            options: [
+              { key: 'Đúng', text: 'Đúng' },
+              { key: 'Sai', text: 'Sai' }
+            ],
+            correctAnswer: 'Sai',
+            explanation: 'x² + 1 = 0 <=> x² = -1 vô nghiệm trên tập số thực R.'
+          },
+          {
+            type: 'mcq',
+            question: 'Tam giác có ba cạnh lần lượt là 3cm, 4cm, 5cm là tam giác gì?',
+            options: [
+              { key: 'A', text: 'Tam giác đều' },
+              { key: 'B', text: 'Tam giác cân' },
+              { key: 'C', text: 'Tam giác vuông' },
+              { key: 'D', text: 'Tam giác tù' }
+            ],
+            correctAnswer: 'C',
+            explanation: 'Theo định lý Pytago đảo: 3² + 4² = 9 + 16 = 25 = 5², do đó tam giác này vuông.'
+          }
+        ]
+      },
+      {
+        id: 'english_deck',
+        name: 'Tiếng Anh: Trắc nghiệm Ngữ pháp & Từ vựng (5 câu)',
+        questions: [
+          {
+            type: 'mcq',
+            question: 'Choose the correct form: She ______ English for five years.',
+            options: [
+              { key: 'A', text: 'learns' },
+              { key: 'B', text: 'has learned' },
+              { key: 'C', text: 'is learning' },
+              { key: 'D', text: 'learned' }
+            ],
+            correctAnswer: 'B',
+            explanation: '"for five years" là dấu hiệu của thì hiện tại hoàn thành (Present Perfect): S + have/has + V3/ed.'
+          },
+          {
+            type: 'mcq',
+            question: 'If it ______ tomorrow, we will stay at home.',
+            options: [
+              { key: 'A', text: 'rains' },
+              { key: 'B', text: 'will rain' },
+              { key: 'C', text: 'rained' },
+              { key: 'D', text: 'is raining' }
+            ],
+            correctAnswer: 'A',
+            explanation: 'Câu điều kiện loại 1 (First Conditional): Mệnh đề If dùng thì Hiện tại đơn (If + S + V(s/es)).'
+          },
+          {
+            type: 'mcq',
+            question: 'What is the opposite meaning of the word "GENEROUS"?',
+            options: [
+              { key: 'A', text: 'Kind' },
+              { key: 'B', text: 'Helpful' },
+              { key: 'C', text: 'Selfish' },
+              { key: 'D', text: 'Polite' }
+            ],
+            correctAnswer: 'C',
+            explanation: '"Generous" (hào phóng, rộng lượng) trái nghĩa với "Selfish" (ích kỷ).'
+          },
+          {
+            type: 'tf',
+            question: 'True or False: "He don\'t like coffee" is grammatically correct.',
+            options: [
+              { key: 'Đúng', text: 'True' },
+              { key: 'Sai', text: 'False' }
+            ],
+            correctAnswer: 'Sai',
+            explanation: 'Chủ ngữ "He" là ngôi thứ 3 số ít nên phải dùng trợ động từ "doesn\'t", câu đúng là "He doesn\'t like coffee".'
+          },
+          {
+            type: 'mcq',
+            question: 'This is the most ______ movie I have ever seen.',
+            options: [
+              { key: 'A', text: 'interested' },
+              { key: 'B', text: 'interest' },
+              { key: 'C', text: 'interesting' },
+              { key: 'D', text: 'interestingly' }
+            ],
+            correctAnswer: 'C',
+            explanation: 'Dùng tính từ đuôi "-ing" (interesting) để miêu tả đặc điểm tính chất của sự vật (bộ phim).'
+          }
+        ]
+      },
+      {
+        id: 'history_deck',
+        name: 'Lịch Sử & Địa Lý: Ôn tập Kiến thức Chung (5 câu)',
+        questions: [
+          {
+            type: 'mcq',
+            question: 'Chiến dịch Điện Biên Phủ toàn thắng vào ngày tháng năm nào?',
+            options: [
+              { key: 'A', text: '30/4/1975' },
+              { key: 'B', text: '7/5/1954' },
+              { key: 'C', text: '2/9/1945' },
+              { key: 'D', text: '19/8/1945' }
+            ],
+            correctAnswer: 'B',
+            explanation: 'Vào lúc 17h30 ngày 7/5/1954, lá cờ "Quyết chiến quyết thắng" tung bay trên nóc hầm De Castries, chiến dịch toàn thắng.'
+          },
+          {
+            type: 'mcq',
+            question: 'Đỉnh núi nào được mệnh danh là "Nóc nhà của Đông Dương"?',
+            options: [
+              { key: 'A', text: 'Ngọc Linh' },
+              { key: 'B', text: 'Bà Đen' },
+              { key: 'C', text: 'Fansipan' },
+              { key: 'D', text: 'Langbiang' }
+            ],
+            correctAnswer: 'C',
+            explanation: 'Đỉnh Fansipan cao 3.143m thuộc dãy Hoàng Liên Sơn là đỉnh núi cao nhất 3 nước Đông Dương.'
+          },
+          {
+            type: 'mcq',
+            question: 'Việt Nam có đường bờ biển dài khoảng bao nhiêu km?',
+            options: [
+              { key: 'A', text: '2.360 km' },
+              { key: 'B', text: '3.260 km' },
+              { key: 'C', text: '4.150 km' },
+              { key: 'D', text: '1.850 km' }
+            ],
+            correctAnswer: 'B',
+            explanation: 'Đường bờ biển nước ta trải dài hình chữ S có độ dài khoảng 3.260 km từ Móng Cái đến Hà Tiên.'
+          },
+          {
+            type: 'tf',
+            question: 'Đúng hay Sai: Đại Cồ Việt là quốc hiệu đầu tiên của nước ta thời vua Đinh Tiên Hoàng.',
+            options: [
+              { key: 'Đúng', text: 'Đúng' },
+              { key: 'Sai', text: 'Sai' }
+            ],
+            correctAnswer: 'Đúng',
+            explanation: 'Năm 968, sau khi dẹp loạn 12 sứ quân, Đinh Bộ Lĩnh lên ngôi Hoàng đế đặt quốc hiệu là Đại Cồ Việt.'
+          },
+          {
+            type: 'mcq',
+            question: 'Sông Mê Kông trước khi đổ ra Biển Đông chia thành mấy cửa lớn ở Việt Nam (đồng bằng Sông Cửu Long)?',
+            options: [
+              { key: 'A', text: '7 cửa' },
+              { key: 'B', text: '8 cửa' },
+              { key: 'C', text: '9 cửa' },
+              { key: 'D', text: '10 cửa' }
+            ],
+            correctAnswer: 'C',
+            explanation: 'Sông Mê Kông đổ ra biển qua 9 cửa lớn nên vùng đồng bằng này được gọi là đồng bằng Sông Cửu Long (Chín Rồng).'
+          }
+        ]
+      }
+    ];
+
+    let savedSets = null;
+    try {
+      const stored = localStorage.getItem('classlive_review_sets');
+      if (stored) savedSets = JSON.parse(stored);
+    } catch (e) {}
+    let reviewSets = (savedSets && Array.isArray(savedSets) && savedSets.length > 0) ? savedSets : DEFAULT_REVIEW_SETS;
+    let currentSetIndex = 0;
+    let currentDeckQIndex = 0;
+
+    const tabModeDeck = document.getElementById('tab-mode-deck');
+    const tabModeQuick = document.getElementById('tab-mode-quick');
+    const deckPlayerBox = document.getElementById('deck-player-box');
+    const quickQuizBox = document.getElementById('quick-quiz-box');
+    const deckSelect = document.getElementById('deck-select');
+    const deckBadgeCounter = document.getElementById('deck-badge-counter');
+    const deckQNum = document.getElementById('deck-q-num');
+    const deckQType = document.getElementById('deck-q-type');
+    const deckQText = document.getElementById('deck-q-text');
+    const deckQOptions = document.getElementById('deck-q-options');
+    const deckQExplanation = document.getElementById('deck-q-explanation');
+    const btnDeckPrev = document.getElementById('btn-deck-prev');
+    const btnDeckNext = document.getElementById('btn-deck-next');
+    const btnDeckLaunch = document.getElementById('btn-deck-launch');
+    const btnDeckEnd = document.getElementById('btn-deck-end');
+    const btnDeckReveal = document.getElementById('btn-deck-reveal');
+    const btnOpenDeckManager = document.getElementById('btn-open-deck-manager');
+    const deckManagerModal = document.getElementById('deck-manager-modal');
+    const btnCloseDeckManager = document.getElementById('btn-close-deck-manager');
+
+    // Chuyển tab chế độ Bộ ôn / Nhanh
+    if (tabModeDeck && tabModeQuick) {
+      tabModeDeck.onclick = () => {
+        tabModeDeck.classList.add('active');
+        tabModeDeck.style.background = '#312e81';
+        tabModeDeck.style.borderColor = '#6366f1';
+        tabModeDeck.style.color = '#fff';
+        tabModeQuick.classList.remove('active');
+        tabModeQuick.style.background = '#1e293b';
+        tabModeQuick.style.borderColor = '#334155';
+        tabModeQuick.style.color = '#94a3b8';
+        if (deckPlayerBox) deckPlayerBox.style.display = 'block';
+        if (quickQuizBox) quickQuizBox.style.display = 'none';
+      };
+      tabModeQuick.onclick = () => {
+        tabModeQuick.classList.add('active');
+        tabModeQuick.style.background = '#312e81';
+        tabModeQuick.style.borderColor = '#6366f1';
+        tabModeQuick.style.color = '#fff';
+        tabModeDeck.classList.remove('active');
+        tabModeDeck.style.background = '#1e293b';
+        tabModeDeck.style.borderColor = '#334155';
+        tabModeDeck.style.color = '#94a3b8';
+        if (deckPlayerBox) deckPlayerBox.style.display = 'none';
+        if (quickQuizBox) quickQuizBox.style.display = 'block';
+      };
+    }
+
+    function initDeckSelect() {
+      if (!deckSelect) return;
+      deckSelect.innerHTML = '';
+      reviewSets.forEach((set, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `${set.name} (${set.questions.length} câu)`;
+        deckSelect.appendChild(opt);
+      });
+      deckSelect.value = currentSetIndex;
+      deckSelect.onchange = () => {
+        currentSetIndex = parseInt(deckSelect.value, 10);
+        currentDeckQIndex = 0;
+        renderDeckQuestionPreview();
+      };
+      renderDeckQuestionPreview();
+    }
+
+    function renderDeckQuestionPreview() {
+      const set = reviewSets[currentSetIndex];
+      if (!set || !set.questions || set.questions.length === 0) {
+        if (deckQText) deckQText.textContent = 'Bộ câu hỏi này chưa có câu nào. Vui lòng bấm [Quản lý bộ đề] để thêm câu hỏi!';
+        if (deckQOptions) deckQOptions.innerHTML = '';
+        if (deckQExplanation) deckQExplanation.style.display = 'none';
+        if (deckBadgeCounter) deckBadgeCounter.textContent = '0 câu';
+        return;
+      }
+      if (currentDeckQIndex < 0) currentDeckQIndex = 0;
+      if (currentDeckQIndex >= set.questions.length) currentDeckQIndex = set.questions.length - 1;
+
+      const q = set.questions[currentDeckQIndex];
+      if (deckBadgeCounter) deckBadgeCounter.textContent = `${set.questions.length} câu`;
+      if (deckQNum) deckQNum.textContent = `CÂU ${currentDeckQIndex + 1} / ${set.questions.length}`;
+      if (deckQType) deckQType.textContent = q.type === 'mcq' ? 'Trắc Nghiệm (A,B,C,D)' : (q.type === 'tf' ? 'Đúng / Sai' : 'Tự Luận / Khác');
+      if (deckQText) deckQText.textContent = q.question;
+
+      if (deckQOptions) {
+        deckQOptions.innerHTML = '';
+        if (Array.isArray(q.options)) {
+          q.options.forEach(opt => {
+            const isCorrect = (opt.key === q.correctAnswer || opt.text === q.correctAnswer);
+            const d = document.createElement('div');
+            d.className = `deck-opt-preview ${isCorrect ? 'correct' : ''}`;
+            d.innerHTML = `<b>[${opt.key}]</b> <span>${opt.text}</span> ${isCorrect ? ' <span style="margin-left:auto;">(ĐÚNG)</span>' : ''}`;
+            deckQOptions.appendChild(d);
+          });
+        }
+      }
+
+      if (deckQExplanation) {
+        if (q.explanation) {
+          deckQExplanation.style.display = 'block';
+          deckQExplanation.innerHTML = `<b>💡 Lời giải / Gợi ý:</b> ${q.explanation}`;
+        } else {
+          deckQExplanation.style.display = 'none';
+        }
+      }
+
+      // Tự động gán đáp án đúng vào currentQuiz
+      currentQuiz.type = q.type || 'mcq';
+      currentQuiz.correctAnswer = q.correctAnswer;
+      currentQuiz.explanation = q.explanation || '';
+      currentQuiz.questionText = q.question;
+      currentQuiz.setName = set.name;
+      currentQuiz.questionIndex = currentDeckQIndex + 1;
+      currentQuiz.totalQuestions = set.questions.length;
+      currentQuiz.options = q.options;
+    }
+
+    if (btnDeckPrev) {
+      btnDeckPrev.onclick = () => {
+        if (currentDeckQIndex > 0) {
+          currentDeckQIndex--;
+          renderDeckQuestionPreview();
+        } else {
+          showToast('Đang ở câu đầu tiên của bộ ôn!');
+        }
+      };
+    }
+    if (btnDeckNext) {
+      btnDeckNext.onclick = () => {
+        const set = reviewSets[currentSetIndex];
+        if (set && currentDeckQIndex < set.questions.length - 1) {
+          currentDeckQIndex++;
+          renderDeckQuestionPreview();
+        } else {
+          showToast('Đã đến câu cuối cùng của bộ ôn!');
+        }
+      };
+    }
+
+    function launchCurrentDeckQuestion() {
+      const set = reviewSets[currentSetIndex];
+      if (!set || !set.questions || set.questions.length === 0) return showToast('Bộ câu hỏi trống!');
+      const q = set.questions[currentDeckQIndex];
+
+      currentQuiz.active = true;
+      currentQuiz.type = q.type || 'mcq';
+      currentQuiz.correctAnswer = q.correctAnswer;
+      currentQuiz.explanation = q.explanation || '';
+      currentQuiz.questionText = q.question;
+      currentQuiz.setName = set.name;
+      currentQuiz.questionIndex = currentDeckQIndex + 1;
+      currentQuiz.totalQuestions = set.questions.length;
+      currentQuiz.options = q.options;
+      currentQuiz.answers = {};
+      students.forEach(s => { s.currentAnswer = null; });
+
+      if (btnDeckLaunch) btnDeckLaunch.style.display = 'none';
+      if (btnDeckEnd) btnDeckEnd.style.display = 'inline-flex';
+      if (btnDeckReveal) btnDeckReveal.style.display = 'inline-flex';
+      quizBadgeStatus.textContent = `🟢 Đang mở trả lời (Câu ${currentDeckQIndex + 1}/${set.questions.length})`;
+      quizBadgeStatus.style.color = '#10b981';
+
+      statsContainer.style.display = 'block';
+      updateStatsUI();
+
+      const cleanCode = getCleanCode(classCode);
+      const payload = {
+        action: 'start',
+        quizType: currentQuiz.type,
+        setName: set.name,
+        questionIndex: currentDeckQIndex + 1,
+        totalQuestions: set.questions.length,
+        questionText: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation || '',
+        timestamp: Date.now()
+      };
+      mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify(payload), { qos: 0, retain: true });
+      showToast(`🚀 Đã phát Câu ${currentDeckQIndex + 1}/${set.questions.length} tới toàn bộ học sinh!`);
+    }
+
+    if (btnDeckLaunch) btnDeckLaunch.onclick = launchCurrentDeckQuestion;
+
+    if (btnDeckEnd) {
+      btnDeckEnd.onclick = () => {
+        currentQuiz.active = false;
+        btnDeckEnd.style.display = 'none';
+        quizBadgeStatus.textContent = '⏹️ Đã dừng nhận bài';
+        quizBadgeStatus.style.color = '#f59e0b';
+        const cleanCode = getCleanCode(classCode);
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify({ action: 'stop' }), { qos: 0, retain: true });
+        showToast('⏹️ Đã dừng nhận câu trả lời.');
+      };
+    }
+
+    if (btnDeckReveal) {
+      btnDeckReveal.onclick = () => {
+        currentQuiz.active = false;
+        btnDeckEnd.style.display = 'none';
+        btnDeckReveal.style.display = 'none';
+        if (btnDeckLaunch) btnDeckLaunch.style.display = 'inline-flex';
+        quizBadgeStatus.textContent = '🎉 Đã công bố kết quả';
+        quizBadgeStatus.style.color = '#fbbf24';
+
+        const cleanCode = getCleanCode(classCode);
+        const correctAns = currentQuiz.correctAnswer;
+
+        // Tự động tặng sao cho học sinh trả lời đúng
+        students.forEach((s, sId) => {
+          const ans = currentQuiz.answers[sId];
+          const isCorrect = ans && (ans === correctAns || (typeof ans === 'string' && ans.trim().toLowerCase() === String(correctAns).trim().toLowerCase()));
+          if (isCorrect) {
+            s.stars = (s.stars || 0) + 1;
+            mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/star/${sId}`, JSON.stringify({
+              stars: s.stars,
+              message: '🌟 Chúc mừng! Bạn trả lời đúng và được +1 Ngôi Sao ⭐!'
+            }), { qos: 0 });
+          }
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz_reveal`, JSON.stringify({
+            correctAnswer: correctAns,
+            explanation: currentQuiz.explanation || '',
+            yourAnswer: ans || 'Chưa nộp',
+            isCorrect: !!isCorrect,
+            stars: s.stars || 0
+          }), { qos: 0, retain: true });
+        });
+        updateStudentUI();
+        updateStatsUI();
+        showToast(`🎉 Đã công bố đáp án [${correctAns}] & tặng sao cho các bạn làm đúng!`);
+      };
+    }
+
+    // Modal quản lý bộ đề
+    if (btnOpenDeckManager && deckManagerModal) {
+      btnOpenDeckManager.onclick = () => {
+        renderDeckManagerView('list');
+        deckManagerModal.style.display = 'flex';
+      };
+    }
+    if (btnCloseDeckManager && deckManagerModal) {
+      btnCloseDeckManager.onclick = () => {
+        deckManagerModal.style.display = 'none';
+        initDeckSelect();
+      };
+    }
+
+    const btnSubtabDecks = document.getElementById('btn-subtab-decks');
+    const btnSubtabNewQ = document.getElementById('btn-subtab-new-q');
+    const btnSubtabImport = document.getElementById('btn-subtab-import');
+    const deckManagerContent = document.getElementById('deck-manager-content');
+
+    if (btnSubtabDecks) btnSubtabDecks.onclick = () => renderDeckManagerView('list');
+    if (btnSubtabNewQ) btnSubtabNewQ.onclick = () => renderDeckManagerView('new_q');
+    if (btnSubtabImport) btnSubtabImport.onclick = () => renderDeckManagerView('import');
+
+    function renderDeckManagerView(view) {
+      if (!deckManagerContent) return;
+      [btnSubtabDecks, btnSubtabNewQ, btnSubtabImport].forEach(b => { if (b) b.classList.remove('active'); });
+
+      if (view === 'list') {
+        if (btnSubtabDecks) btnSubtabDecks.classList.add('active');
+        const set = reviewSets[currentSetIndex];
+        let qHtml = '';
+        if (set && set.questions) {
+          set.questions.forEach((q, qIdx) => {
+            qHtml += `
+              <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-bottom: 8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <span style="font-weight:700; color:#38bdf8; font-size:12.5px;">Câu ${qIdx + 1} (${q.type === 'mcq' ? 'Trắc nghiệm' : (q.type === 'tf' ? 'Đúng/Sai' : q.type)})</span>
+                  <button onclick="deleteDeckQuestion(${qIdx})" style="background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4); padding:2px 8px; border-radius:4px; font-size:11px; cursor:pointer;">Xóa câu</button>
+                </div>
+                <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:4px;">${q.question}</div>
+                <div style="font-size:11.5px; color:#a5b4fc;">Đáp án đúng: <b style="color:#34d399;">${q.correctAnswer}</b> ${q.explanation ? '• Gợi ý: ' + q.explanation : ''}</div>
+              </div>
+            `;
+          });
+        }
+        deckManagerContent.innerHTML = `
+          <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13.5px; font-weight:700; color:#fbbf24;">Bộ đang chọn: ${set ? set.name : ''}</span>
+            <button onclick="createNewDeckPrompt()" style="background:#4f46e5; color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">➕ Tạo Bộ Mới</button>
+          </div>
+          ${qHtml || '<p style="color:#94a3b8; font-size:13px; text-align:center;">Chưa có câu hỏi nào trong bộ này.</p>'}
+        `;
+      } else if (view === 'new_q') {
+        if (btnSubtabNewQ) btnSubtabNewQ.classList.add('active');
+        deckManagerContent.innerHTML = `
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <label style="font-size:12px; color:#cbd5e1; font-weight:700;">Đề bài câu hỏi:</label>
+              <textarea id="inp-new-q-text" style="width:100%; height:60px; background:#0f172a; border:1px solid #4f46e5; border-radius:6px; color:#fff; padding:8px; font-size:13px; outline:none; margin-top:4px;" placeholder="Nhập đề bài câu hỏi..."></textarea>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div>
+                <label style="font-size:11.5px; color:#94a3b8;">Phương án A:</label>
+                <input id="inp-new-opt-a" type="text" style="width:100%; padding:6px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; font-size:12.5px;" placeholder="Đáp án A..." />
+              </div>
+              <div>
+                <label style="font-size:11.5px; color:#94a3b8;">Phương án B:</label>
+                <input id="inp-new-opt-b" type="text" style="width:100%; padding:6px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; font-size:12.5px;" placeholder="Đáp án B..." />
+              </div>
+              <div>
+                <label style="font-size:11.5px; color:#94a3b8;">Phương án C:</label>
+                <input id="inp-new-opt-c" type="text" style="width:100%; padding:6px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; font-size:12.5px;" placeholder="Đáp án C..." />
+              </div>
+              <div>
+                <label style="font-size:11.5px; color:#94a3b8;">Phương án D:</label>
+                <input id="inp-new-opt-d" type="text" style="width:100%; padding:6px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; font-size:12.5px;" placeholder="Đáp án D..." />
+              </div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div style="flex:1;">
+                <label style="font-size:12px; color:#cbd5e1; font-weight:700;">Đáp án đúng:</label>
+                <select id="inp-new-correct" style="width:100%; padding:6px; background:#0f172a; border:1.5px solid #10b981; border-radius:6px; color:#34d399; font-weight:700;">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+              </div>
+              <div style="flex:2;">
+                <label style="font-size:12px; color:#cbd5e1; font-weight:700;">Lời giải / Giải thích chi tiết:</label>
+                <input id="inp-new-explanation" type="text" style="width:100%; padding:6px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; font-size:12.5px;" placeholder="Vì sao đáp án này đúng..." />
+              </div>
+            </div>
+            <button onclick="saveNewDeckQuestion()" class="btn btn-primary" style="margin-top:6px; padding:10px; font-weight:700; background:#10b981;">💾 Lưu Câu Hỏi Vào Bộ Đang Chọn</button>
+          </div>
+        `;
+      } else if (view === 'import') {
+        if (btnSubtabImport) btnSubtabImport.classList.add('active');
+        deckManagerContent.innerHTML = `
+          <div>
+            <p style="font-size:12.5px; color:#94a3b8; margin-bottom:8px;">
+              Dán đề bài theo định dạng nhanh (mỗi câu cách nhau 1 dòng trống, có dòng "Đáp án: X"):
+            </p>
+            <textarea id="inp-import-text" style="width:100%; height:160px; background:#0f172a; border:1px solid #4f46e5; border-radius:8px; color:#fff; padding:10px; font-size:12.5px; outline:none; font-family:monospace;" placeholder="Câu 1: Mặt trời mọc ở hướng nào?&#10;A. Hướng Đông&#10;B. Hướng Tây&#10;C. Hướng Nam&#10;D. Hướng Bắc&#10;Đáp án: A&#10;Giải thích: Trái đất tự quay quanh trục từ Tây sang Đông."></textarea>
+            <button onclick="parseQuickTextImport()" class="btn btn-primary" style="margin-top:8px; width:100%; padding:10px; font-weight:700;">🚀 Nhập Các Câu Này Vào Bộ Ôn</button>
+          </div>
+        `;
+      }
+    }
+
+    window.createNewDeckPrompt = function() {
+      const name = prompt('Nhập tên Bộ ôn tập mới (Ví dụ: Ôn tập Giữa kỳ 1 - Toán):', '');
+      if (name && name.trim()) {
+        const newSet = {
+          id: 'set_' + Date.now(),
+          name: name.trim(),
+          questions: []
+        };
+        reviewSets.push(newSet);
+        currentSetIndex = reviewSets.length - 1;
+        currentDeckQIndex = 0;
+        try { localStorage.setItem('classlive_review_sets', JSON.stringify(reviewSets)); } catch (e) {}
+        initDeckSelect();
+        renderDeckManagerView('new_q');
+        showToast(`Đã tạo bộ ôn: ${name.trim()}`);
+      }
+    };
+
+    window.deleteDeckQuestion = function(qIdx) {
+      const set = reviewSets[currentSetIndex];
+      if (set && set.questions && set.questions[qIdx]) {
+        if (confirm(`Bạn có chắc muốn xóa câu ${qIdx + 1}?`)) {
+          set.questions.splice(qIdx, 1);
+          try { localStorage.setItem('classlive_review_sets', JSON.stringify(reviewSets)); } catch (e) {}
+          renderDeckManagerView('list');
+          renderDeckQuestionPreview();
+          showToast('Đã xóa câu hỏi!');
+        }
+      }
+    };
+
+    window.saveNewDeckQuestion = function() {
+      const qText = document.getElementById('inp-new-q-text')?.value.trim();
+      const optA = document.getElementById('inp-new-opt-a')?.value.trim();
+      const optB = document.getElementById('inp-new-opt-b')?.value.trim();
+      const optC = document.getElementById('inp-new-opt-c')?.value.trim();
+      const optD = document.getElementById('inp-new-opt-d')?.value.trim();
+      const correct = document.getElementById('inp-new-correct')?.value;
+      const explanation = document.getElementById('inp-new-explanation')?.value.trim();
+
+      if (!qText) return alert('Vui lòng nhập đề bài!');
+      if (!optA || !optB) return alert('Vui lòng nhập ít nhất phương án A và B!');
+
+      const newQ = {
+        type: 'mcq',
+        question: qText,
+        options: [
+          { key: 'A', text: optA || 'A' },
+          { key: 'B', text: optB || 'B' },
+          { key: 'C', text: optC || 'C' },
+          { key: 'D', text: optD || 'D' }
+        ],
+        correctAnswer: correct || 'A',
+        explanation: explanation || ''
+      };
+
+      const set = reviewSets[currentSetIndex];
+      if (set) {
+        set.questions.push(newQ);
+        try { localStorage.setItem('classlive_review_sets', JSON.stringify(reviewSets)); } catch (e) {}
+        currentDeckQIndex = set.questions.length - 1;
+        renderDeckManagerView('list');
+        renderDeckQuestionPreview();
+        showToast('✅ Đã thêm câu hỏi vào bộ ôn!');
+      }
+    };
+
+    window.parseQuickTextImport = function() {
+      const raw = document.getElementById('inp-import-text')?.value;
+      if (!raw || !raw.trim()) return alert('Chưa có nội dung nhập!');
+      const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      let q = null;
+      const parsed = [];
+
+      lines.forEach(line => {
+        if (/^(câu|câu hỏi|\d+[\.:])/i.test(line)) {
+          if (q) parsed.push(q);
+          q = { type: 'mcq', question: line.replace(/^(câu|câu hỏi)\s*\d*[\.:]\s*/i, ''), options: [], correctAnswer: 'A', explanation: '' };
+        } else if (/^[A-D][\.:\)]/i.test(line) && q) {
+          const key = line[0].toUpperCase();
+          const text = line.substring(2).trim();
+          q.options.push({ key: key, text: text });
+        } else if (/^(đáp án|câu trả lời|ans)[\.:]/i.test(line) && q) {
+          const match = line.match(/[A-D]/i);
+          if (match) q.correctAnswer = match[0].toUpperCase();
+        } else if (/^(giải thích|lời giải|gợi ý)[\.:]/i.test(line) && q) {
+          q.explanation = line.replace(/^(giải thích|lời giải|gợi ý)[\.:]\s*/i, '');
+        }
+      });
+      if (q) parsed.push(q);
+
+      if (parsed.length === 0) return alert('Không nhận diện được câu hỏi nào. Vui lòng kiểm tra định dạng!');
+
+      const set = reviewSets[currentSetIndex];
+      if (set) {
+        set.questions.push(...parsed);
+        try { localStorage.setItem('classlive_review_sets', JSON.stringify(reviewSets)); } catch (e) {}
+        renderDeckManagerView('list');
+        renderDeckQuestionPreview();
+        showToast(`🎉 Đã nhập thành công ${parsed.length} câu hỏi vào bộ ôn!`);
+      }
+    };
+
+    // Khởi tạo Bộ Ôn Tập
+    initDeckSelect();
+
     const fillblankAnsWrapper = document.getElementById('fillblank-ans-wrapper');
     const fillblankCorrectInput = document.getElementById('fillblank-correct-input');
     const wordcloudWrapper = document.getElementById('wordcloud-wrapper');
@@ -1830,6 +2621,16 @@
               if (cpBtnPoll) cpBtnPoll.click();
             } else if (data.command === 'open_leaderboard') {
               if (cpBtnLeaderboard) cpBtnLeaderboard.click();
+            } else if (data.command === 'deck_next') {
+              if (btnDeckNext) btnDeckNext.click();
+            } else if (data.command === 'deck_prev') {
+              if (btnDeckPrev) btnDeckPrev.click();
+            } else if (data.command === 'deck_launch') {
+              if (btnDeckLaunch) btnDeckLaunch.click();
+            } else if (data.command === 'lower_all_hands') {
+              lowerAllHands();
+            } else if (data.command === 'star_all') {
+              starAllStudents();
             } else if (data.command === 'spin_winner') {
               const wheelDisplay = document.getElementById('wheel-name-display');
               if (wheelDisplay) {
@@ -2500,23 +3301,95 @@
         studentList.innerHTML = `<li style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">Chưa có học sinh nào kết nối.<br>Học sinh nhập mã của bạn sẽ hiện tên tại đây.</li>`;
         return;
       }
+      // ƯU TIÊN SẮP XẾP: Học sinh giơ tay lên ĐẦU TIÊN
+      const sortedStudents = Array.from(students.entries()).sort((a, b) => {
+        if (a[1].isHandRaised && !b[1].isHandRaised) return -1;
+        if (!a[1].isHandRaised && b[1].isHandRaised) return 1;
+        return (b[1].stars || 0) - (a[1].stars || 0);
+      });
+
       let html = '';
-      students.forEach((s, sId) => {
+      sortedStudents.forEach(([sId, s]) => {
         html += `
           <li class="student-item ${s.isHandRaised ? 'hand-raised' : ''}">
-            <div>
+            <div style="flex: 1;">
               <span>${s.isHandRaised ? '✋ ' : '👤 '}<b>${s.name}</b></span>
               <span style="font-size: 11px; margin-left: 6px; color: #fbbf24;">⭐ ${s.stars || 0}</span>
-              <div style="font-size: 11px; color: ${s.currentAnswer ? '#10b981' : '#64748b'};">
-                ${s.currentAnswer ? 'Đã nộp: ' + s.currentAnswer : (s.isHandRaised ? 'Đang giơ tay!' : 'Đang theo dõi')}
+              <div style="font-size: 11px; color: ${s.currentAnswer ? '#10b981' : (s.isHandRaised ? '#ef4444' : '#64748b')}; font-weight: ${s.isHandRaised ? '700' : 'normal'};">
+                ${s.currentAnswer ? 'Đã nộp: ' + (typeof s.currentAnswer === 'string' && s.currentAnswer.length > 25 ? s.currentAnswer.substring(0, 25) + '...' : s.currentAnswer) : (s.isHandRaised ? '🔥 ĐANG GIƠ TAY PHÁT BIỂU!' : 'Đang theo dõi')}
               </div>
             </div>
-            <button class="btn-star-add" onclick="awardStar('${sId}')" title="Tặng sao">⭐+1</button>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              ${s.isHandRaised ? `<button class="btn-action-small" onclick="lowerStudentHand('${sId}')" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 11px; padding: 3px 6px;" title="Mời hoặc hạ tay bạn này">Hạ tay</button>` : ''}
+              <button class="btn-star-add" onclick="awardStar('${sId}')" title="Tặng sao">⭐+1</button>
+            </div>
           </li>
         `;
       });
       studentList.innerHTML = html;
     }
+
+    function lowerStudentHand(sId) {
+      const s = students.get(sId);
+      if (s) {
+        s.isHandRaised = false;
+        updateStudentUI();
+      }
+      const cleanCode = getCleanCode(classCode);
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/lower_hand/${sId}`, JSON.stringify({ action: 'lower' }), { qos: 0 });
+      }
+      showToast(`Đã hạ tay học sinh!`);
+    }
+    window.lowerStudentHand = lowerStudentHand;
+
+    function lowerAllHands() {
+      students.forEach(s => { s.isHandRaised = false; });
+      updateStudentUI();
+      const cleanCode = getCleanCode(classCode);
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/lower_hand_all`, JSON.stringify({ action: 'lower_all' }), { qos: 0 });
+      }
+      showToast('✋ Đã hạ tay toàn bộ học sinh trong lớp!');
+    }
+
+    function broadcastAnnouncement(msg) {
+      const message = msg !== undefined ? msg : prompt('Nhập thông báo gửi tức thì đến toàn bộ học sinh:', 'Các em chú ý thời gian làm bài!');
+      if (!message || !message.trim()) return;
+      const cleanCode = getCleanCode(classCode);
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/announcement`, JSON.stringify({
+          text: message.trim(),
+          timestamp: Date.now()
+        }), { qos: 0 });
+        showToast(`📢 Đã phát thông báo: "${message.trim()}"`);
+      }
+    }
+
+    function starAllStudents() {
+      if (students.size === 0) return showToast('Chưa có học sinh nào trong lớp!');
+      const cleanCode = getCleanCode(classCode);
+      students.forEach((s, sId) => {
+        s.stars = (s.stars || 0) + 1;
+        if (mqttClient && mqttClient.connected) {
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/star/${sId}`, JSON.stringify({
+            stars: s.stars,
+            message: '🌟 Thầy/Cô vừa thưởng cả lớp +1 Ngôi Sao!'
+          }), { qos: 0 });
+        }
+      });
+      updateStudentUI();
+      showToast('⭐ Đã tặng mỗi bạn trong lớp 1 Ngôi Sao!');
+    }
+
+    const btnLowerAllHands = document.getElementById('btn-lower-all-hands');
+    if (btnLowerAllHands) btnLowerAllHands.addEventListener('click', lowerAllHands);
+
+    const btnBroadcastAnn = document.getElementById('btn-broadcast-announcement');
+    if (btnBroadcastAnn) btnBroadcastAnn.addEventListener('click', () => broadcastAnnouncement());
+
+    const btnStarAll = document.getElementById('btn-star-all');
+    if (btnStarAll) btnStarAll.addEventListener('click', starAllStudents);
 
     initMqtt();
   </script>
@@ -2694,6 +3567,26 @@
         <button id="btn-load-ai-quiz" class="btn btn-primary" style="width: 100%; margin-top: 10px; background: #10b981; font-weight: 700;">
           🚀 Nạp & Phát Câu Hỏi Này
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL QUẢN LÝ KHO BỘ ÔN TẬP (DECK MANAGER) -->
+  <div id="deck-manager-modal" class="modal-overlay" style="display: none;">
+    <div style="background: #1e293b; border: 2px solid #6366f1; border-radius: 16px; padding: 22px; max-width: 620px; width: 95%; max-height: 85vh; display: flex; flex-direction: column; color: #fff;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
+        <span style="font-weight: 800; font-size: 16px; color: #a5b4fc;">📚 QUẢN LÝ KHO BỘ ÔN TẬP</span>
+        <button id="btn-close-deck-manager" style="background: none; border: none; color: #fff; font-size: 22px; cursor: pointer;">✕</button>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <button id="btn-subtab-decks" class="btn btn-secondary active" style="flex: 1; padding: 8px; font-size: 13px;">📋 Danh Sách Câu</button>
+        <button id="btn-subtab-new-q" class="btn btn-secondary" style="flex: 1; padding: 8px; font-size: 13px;">➕ Thêm Câu Hỏi</button>
+        <button id="btn-subtab-import" class="btn btn-secondary" style="flex: 1; padding: 8px; font-size: 13px;">📥 Nhập Nhanh</button>
+      </div>
+
+      <div id="deck-manager-content" style="flex: 1; overflow-y: auto; padding-right: 4px;">
+        <!-- Dynamic content: danh sách câu hỏi / form thêm câu hỏi / textarea import -->
       </div>
     </div>
   </div>

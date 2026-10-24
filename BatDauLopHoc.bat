@@ -6,8 +6,8 @@ echo ============================================================
 echo      DANG MO BANG DIEU KHIEN TRINH CHIẾU CHO GIAO VIEN
 echo ============================================================
 echo.
-echo 1. Dang mo trang dieu khien tren trinh duyet...
-start https://hncanhlsts.github.io/lop-hoc/teacher.html
+echo 1. Dang mo trang dieu khien Giao Vien...
+start "" "%~dp0client\teacher.html"
 
 echo.
 echo 2. Ban chi can bam nut xanh: [BAT TRINH CHIEU CHO HOC SINH]

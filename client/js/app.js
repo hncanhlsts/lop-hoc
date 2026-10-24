@@ -413,7 +413,16 @@ document.addEventListener('DOMContentLoaded', () => {
     onStarAward: (starData) => {
       accumulatedStars = starData.stars;
       if (myStars) myStars.textContent = `⭐ ${accumulatedStars}`;
+      playAudioTone('star');
       showToast(starData.message || '🌟 Thầy/Cô vừa tặng bạn 1 Ngôi Sao!');
+    },
+    onAnnouncement: (annData) => {
+      handleAnnouncement(annData);
+    },
+    onLowerHand: () => {
+      isHandRaised = false;
+      if (btnRaiseHand) btnRaiseHand.classList.remove('active');
+      showToast('✋ Thầy/Cô đã mời em hoặc hạ tay phát biểu.');
     },
     onKick: (kickData) => {
       alert(kickData && kickData.reason ? kickData.reason : 'Bạn đã bị mời ra khỏi phòng học.');
@@ -496,15 +505,147 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- Tương tác: Thả phản hồi nhanh ---
-  const reactions = ['👍 Hiểu bài', '🤔 Chưa hiểu lắm', '💡 Thú vị', '⏩ Thầy cô giảng nhanh quá'];
-  let reactionIndex = 0;
-  btnReaction.addEventListener('click', () => {
-    const react = reactions[reactionIndex % reactions.length];
-    reactionIndex++;
-    connection.sendReaction(react);
-    showToast(`Đã gửi: ${react}`);
-  });
+  // --- Âm thanh thông báo Web Audio sinh động ---
+  function playAudioTone(type) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      if (type === 'quiz') {
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.12);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.start(now);
+        osc.stop(now + 0.36);
+      } else if (type === 'star' || type === 'correct') {
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.setValueAtTime(880, now + 0.1);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc.start(now);
+        osc.stop(now + 0.46);
+      } else if (type === 'announcement') {
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(554.37, now + 0.14);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.41);
+      }
+    } catch (e) {}
+  }
+
+  // --- Xử lý Thông Báo Khẩn Từ Giáo Viên ---
+  const announcementBanner = document.getElementById('announcement-banner');
+  const announcementText = document.getElementById('announcement-text');
+  const btnCloseAnnouncement = document.getElementById('btn-close-announcement');
+  if (btnCloseAnnouncement && announcementBanner) {
+    btnCloseAnnouncement.onclick = () => { announcementBanner.style.display = 'none'; };
+  }
+  function handleAnnouncement(data) {
+    const text = data.text || data.message || '';
+    if (!text || !announcementBanner) return;
+    if (announcementText) announcementText.textContent = text;
+    announcementBanner.style.display = 'flex';
+    playAudioTone('announcement');
+    showToast(`📢 Thầy/Cô nhắn: "${text.length > 40 ? text.substring(0, 40) + '...' : text}"`);
+    clearTimeout(announcementBanner._timer);
+    announcementBanner._timer = setTimeout(() => {
+      announcementBanner.style.display = 'none';
+    }, 12000);
+  }
+
+  // --- Tương tác: Bảng chọn phản hồi cảm xúc trực tiếp (Popover) ---
+  const reactionPopover = document.getElementById('reaction-popover');
+  if (btnReaction && reactionPopover) {
+    btnReaction.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = reactionPopover.style.display === 'block';
+      reactionPopover.style.display = isVisible ? 'none' : 'block';
+    });
+
+    document.querySelectorAll('.reaction-item-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const react = btn.getAttribute('data-reaction') || '👍';
+        connection.sendReaction(react);
+        showToast(`Đã gửi cảm xúc: <b>${react}</b>`);
+        reactionPopover.style.display = 'none';
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (reactionPopover && !reactionPopover.contains(e.target) && e.target !== btnReaction) {
+        reactionPopover.style.display = 'none';
+      }
+    });
+  }
+
+  // --- Lịch sử bài làm & Điểm số của học sinh ---
+  const studentQuizHistory = [];
+  const btnQuizHistory = document.getElementById('btn-quiz-history');
+  const quizHistoryModal = document.getElementById('quiz-history-modal');
+  const btnCloseHistory = document.getElementById('btn-close-history');
+  const histTotalCount = document.getElementById('hist-total-count');
+  const histCorrectCount = document.getElementById('hist-correct-count');
+  const histWrongCount = document.getElementById('hist-wrong-count');
+  const histStarCount = document.getElementById('hist-star-count');
+  const historyItemsList = document.getElementById('history-items-list');
+
+  if (btnQuizHistory && quizHistoryModal) {
+    btnQuizHistory.addEventListener('click', () => {
+      renderQuizHistoryUI();
+      quizHistoryModal.style.display = 'flex';
+    });
+  }
+  if (btnCloseHistory && quizHistoryModal) {
+    btnCloseHistory.addEventListener('click', () => {
+      quizHistoryModal.style.display = 'none';
+    });
+  }
+
+  function renderQuizHistoryUI() {
+    if (!historyItemsList) return;
+    const total = studentQuizHistory.length;
+    const correct = studentQuizHistory.filter(h => h.isCorrect).length;
+    const wrong = total - correct;
+
+    if (histTotalCount) histTotalCount.textContent = total;
+    if (histCorrectCount) histCorrectCount.textContent = correct;
+    if (histWrongCount) histWrongCount.textContent = wrong;
+    if (histStarCount) histStarCount.textContent = accumulatedStars;
+
+    if (total === 0) {
+      historyItemsList.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 24px 0; font-size: 13px;">Em chưa tham gia câu hỏi nào trong buổi học này.</div>`;
+      return;
+    }
+
+    let html = '';
+    studentQuizHistory.forEach((item, idx) => {
+      html += `
+        <div class="quiz-hist-item ${item.isCorrect ? 'correct' : 'wrong'}">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <b style="color: #38bdf8;">Câu ${idx + 1} (${item.setName || 'Bộ ôn'})</b>
+            <span style="font-weight:700; color: ${item.isCorrect ? '#34d399' : '#f87171'};">
+              ${item.isCorrect ? '✅ Đúng (+1⭐)' : '❌ Sai'}
+            </span>
+          </div>
+          <div style="font-weight:600; color:#f1f5f9; margin-bottom:4px;">${item.questionText}</div>
+          <div style="font-size:12px; color:#cbd5e1;">
+            Em chọn: <b>${item.yourAnswer}</b> | Đáp án đúng: <b style="color:#34d399;">${item.correctAnswer}</b>
+          </div>
+          ${item.explanation ? `<div style="font-size:11.5px; color:#a5b4fc; margin-top:4px;">💡 ${item.explanation}</div>` : ''}
+        </div>
+      `;
+    });
+    historyItemsList.innerHTML = html;
+  }
 
   // --- Chụp / Lưu bài giảng ---
   btnDownloadSlide.addEventListener('click', () => {
@@ -652,12 +793,36 @@ document.addEventListener('DOMContentLoaded', () => {
     if (quizIdleCard) quizIdleCard.style.display = 'none';
     if (!quizData || quizData.action !== 'start') return;
     currentQuiz = quizData;
+    currentQuiz.submittedAnswer = null;
+    playAudioTone('quiz');
     quizResultBanner.style.display = 'none';
     quizSubmittedMsg.style.display = 'none';
     quizContentArea.style.display = 'block';
     isQuizMinimized = false;
     quizOverlay.classList.remove('minimized');
     if (btnToggleQuizSize) btnToggleQuizSize.textContent = '▼ Thu nhỏ xem đề';
+
+    // Hiển thị khung đề bài & thông tin bộ ôn
+    const quizPromptCard = document.getElementById('quiz-prompt-card');
+    const quizDeckBadge = document.getElementById('quiz-deck-badge');
+    const quizNumBadge = document.getElementById('quiz-num-badge');
+    const quizQuestionTitle = document.getElementById('quiz-question-title');
+
+    if (quizData.questionText && quizPromptCard) {
+      quizPromptCard.style.display = 'block';
+      if (quizQuestionTitle) quizQuestionTitle.textContent = quizData.questionText;
+      if (quizDeckBadge) quizDeckBadge.textContent = quizData.setName || 'Bộ Ôn Tập';
+      if (quizNumBadge) {
+        if (quizData.questionIndex) {
+          quizNumBadge.style.display = 'inline-block';
+          quizNumBadge.textContent = `Câu ${quizData.questionIndex}/${quizData.totalQuestions || '?'}`;
+        } else {
+          quizNumBadge.style.display = 'none';
+        }
+      }
+    } else if (quizPromptCard) {
+      quizPromptCard.style.display = 'none';
+    }
 
     // Ẩn tất cả các form nhập liệu trước
     if (quizOptionsContainer) quizOptionsContainer.style.display = 'none';
@@ -759,11 +924,22 @@ document.addEventListener('DOMContentLoaded', () => {
       options.forEach(opt => {
         const btn = document.createElement('button');
         btn.className = 'quiz-option-btn';
-        btn.textContent = type === 'mcq' ? `Đáp án ${opt}` : opt;
+        let keyVal = '';
+        if (typeof opt === 'object' && opt !== null) {
+          keyVal = opt.key || 'A';
+          btn.innerHTML = `<span class="opt-badge">${keyVal}</span> <span class="opt-text">${opt.text || ''}</span>`;
+        } else {
+          keyVal = String(opt);
+          if (type === 'mcq' && keyVal.length === 1) {
+            btn.innerHTML = `<span class="opt-badge">${keyVal}</span> <span class="opt-text">Đáp án ${keyVal}</span>`;
+          } else {
+            btn.innerHTML = `<span class="opt-text">${keyVal}</span>`;
+          }
+        }
         btn.addEventListener('click', () => {
           document.querySelectorAll('.quiz-option-btn').forEach(b => b.classList.remove('selected'));
           btn.classList.add('selected');
-          submitStudentAnswer(opt, `Đã chọn: <b>${opt}</b>!`);
+          submitStudentAnswer(keyVal, `Đã chọn: <b>${keyVal}</b>!`);
         });
         quizOptionsContainer.appendChild(btn);
       });
@@ -777,6 +953,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function submitStudentAnswer(answer, textFeedback) {
+    if (currentQuiz) currentQuiz.submittedAnswer = answer;
     connection.submitAnswer(answer);
     setTimeout(() => {
       quizContentArea.style.display = 'none';
@@ -798,6 +975,26 @@ document.addEventListener('DOMContentLoaded', () => {
       if (myStars) myStars.textContent = `⭐ ${accumulatedStars}`;
     }
 
+    const yourAns = resultData.yourAnswer || (currentQuiz ? currentQuiz.submittedAnswer : 'Chưa nộp');
+    const isCorrect = !!resultData.isCorrect;
+    const explanationHtml = resultData.explanation 
+      ? `<div style="margin-top: 10px; background: rgba(0,0,0,0.3); border-left: 3px solid #6366f1; padding: 8px 12px; border-radius: 6px; font-size: 13px; text-align: left; color: #e2e8f0;">
+          <b>💡 Lời giải thích:</b> ${resultData.explanation}
+         </div>`
+      : '';
+
+    // Ghi nhận vào Lịch sử Ôn tập
+    studentQuizHistory.push({
+      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      questionText: currentQuiz && currentQuiz.questionText ? currentQuiz.questionText : `Câu hỏi ${studentQuizHistory.length + 1}`,
+      setName: currentQuiz && currentQuiz.setName ? currentQuiz.setName : 'Ôn tập trực tiếp',
+      yourAnswer: yourAns,
+      correctAnswer: resultData.correctAnswer || '---',
+      isCorrect: isCorrect,
+      explanation: resultData.explanation || ''
+    });
+    renderQuizHistoryUI();
+
     // Nếu không có đáp án đúng (tự luận / khảo sát)
     if (!resultData.correctAnswer) {
       quizResultBanner.innerHTML = `
@@ -805,21 +1002,25 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="result-icon">👍 🌟</div>
           <div class="result-title">CẢM ƠN EM ĐÃ THAM GIA!</div>
           <div class="result-desc">Thầy/Cô đã ghi nhận câu trả lời của em!</div>
+          ${explanationHtml}
         </div>
       `;
+      playAudioTone('star');
       return;
     }
 
     // Nếu làm ĐÚNG
-    if (resultData.isCorrect) {
+    if (isCorrect) {
+      playAudioTone('correct');
       quizResultBanner.innerHTML = `
         <div class="result-banner correct">
           <div class="result-icon">🎉 ⭐ 🌟</div>
           <div class="result-title">XUẤT SẮC! CHÍNH XÁC!</div>
           <div class="result-desc">
-            Đáp án <b>${resultData.yourAnswer}</b> là hoàn toàn chính xác!<br>
+            Đáp án <b>${yourAns}</b> là hoàn toàn chính xác!<br>
             Em được Thầy/Cô thưởng <b>+1 Ngôi Sao ⭐</b>!
           </div>
+          ${explanationHtml}
         </div>
       `;
       showToast('🎉 Chúc mừng! Bạn đã trả lời đúng (+1⭐)');
@@ -831,9 +1032,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="result-title">CỐ GẮNG LÊN NHÉ EM!</div>
           <div class="result-desc">
             Đáp án đúng là: <b style="color: #6ee7b7; font-size: 16px;">${resultData.correctAnswer}</b>.<br>
-            Em đã chọn: <b>${resultData.yourAnswer || 'Chưa kịp nộp'}</b>.<br>
-            Đừng nản lòng nhé! Hãy chú ý nghe Thầy/Cô giải thích và làm tốt ở câu tiếp theo!
+            Em đã chọn: <b>${yourAns || 'Chưa kịp nộp'}</b>.<br>
+            Đừng nản lòng nhé! Hãy chú ý đọc kỹ lời giải thích và làm tốt ở câu tiếp theo!
           </div>
+          ${explanationHtml}
         </div>
       `;
       showToast('💪 Đừng buồn nhé, lần sau cố gắng hơn!');

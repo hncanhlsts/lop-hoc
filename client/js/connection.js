@@ -32,6 +32,9 @@ class SlideConnection {
     this.onStarAward = options.onStarAward || (() => {});
     this.onKick = options.onKick || (() => {});
     this.onLaserMove = options.onLaserMove || (() => {});
+    this.onAnnouncement = options.onAnnouncement || (() => {});
+    this.onLowerHand = options.onLowerHand || (() => {});
+    this.retryCount = 0;
   }
 
   connect(roomCode, studentName, isDemo = false) {
@@ -79,6 +82,9 @@ class SlideConnection {
           `${baseTopic}/quiz`,
           `${baseTopic}/quiz_reveal`,
           `${baseTopic}/laser`,
+          `${baseTopic}/announcement`,
+          `${baseTopic}/lower_hand/${this.studentId}`,
+          `${baseTopic}/lower_hand_all`,
           `${baseTopic}/star/${this.studentId}`,
           `${baseTopic}/kick/${this.studentId}`
         ], { qos: 0 });
@@ -175,6 +181,10 @@ class SlideConnection {
       }
     } else if (topic.endsWith('/laser')) {
       this.onLaserMove(data);
+    } else if (topic.endsWith('/announcement')) {
+      this.onAnnouncement(data);
+    } else if (topic.includes('/lower_hand')) {
+      this.onLowerHand(data);
     } else if (topic.endsWith('/quiz_reveal')) {
       this.onQuizReveal(data);
     } else if (topic.includes('/star/')) {
@@ -231,7 +241,13 @@ class SlideConnection {
   }
 
   retry() {
-    this.connectToBroker(this.brokerIndex + 1);
+    this.retryCount = (this.retryCount || 0) + 1;
+    if (this.retryCount >= 3) {
+      this.retryCount = 0;
+      this.connectToBroker(this.brokerIndex + 1);
+    } else {
+      this.connectToBroker(this.brokerIndex);
+    }
   }
 
   disconnect() {
