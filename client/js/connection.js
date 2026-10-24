@@ -84,6 +84,8 @@ class SlideConnection {
         // Gửi thông tin điểm danh & yêu cầu lấy slide hiện tại
         this.sendPresence();
         this.requestCurrentSlide();
+        setTimeout(() => this.requestCurrentSlide(), 1000);
+        setTimeout(() => this.requestCurrentSlide(), 2500);
 
         if (this.pingTimer) clearInterval(this.pingTimer);
         this.pingTimer = setInterval(() => this.sendPresence(), 10000);

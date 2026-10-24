@@ -1961,6 +1961,7 @@
     const previewVideo = document.getElementById('preview-video');
     const captureCanvas = document.getElementById('capture-canvas');
     const ctx = captureCanvas.getContext('2d');
+    let lastSentImage = null;
     let mediaStream = null;
     let captureInterval = null;
 
@@ -2069,21 +2070,28 @@
     }
 
     function captureAndSendSlide(force = false) {
-      if (!mediaStream || previewVideo.videoWidth === 0) return;
-      if (!force && !hasSlideChanged()) return;
+      if (!mediaStream || !previewVideo || previewVideo.videoWidth === 0) return;
+      if (!force && !hasSlideChanged() && lastSentImage) return;
 
-      captureCanvas.width = 1280;
-      captureCanvas.height = 720;
-      ctx.drawImage(previewVideo, 0, 0, 1280, 720);
+      // Độ phân giải chuẩn 960x540 sắc nét Retina trên điện thoại và truyền dưới 40KB
+      captureCanvas.width = 960;
+      captureCanvas.height = 540;
+      ctx.drawImage(previewVideo, 0, 0, 960, 540);
 
-      const base64Image = captureCanvas.toDataURL('image/jpeg', 0.65);
+      // Ghép nét vẽ bút/dạ quang nếu giáo viên có vẽ trên slide
+      if (slideAnnotCanvas && annotCtx) {
+        ctx.drawImage(slideAnnotCanvas, 0, 0, 960, 540);
+      }
+
+      const base64Image = captureCanvas.toDataURL('image/jpeg', 0.58);
+      lastSentImage = base64Image;
       const cleanCode = getCleanCode(classCode);
 
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
           imageUrl: base64Image,
-          slideNumber: 1,
-          totalSlides: 1,
+          slideNumber: currentSlideIndex || 1,
+          totalSlides: currentSlideIndex || 1,
           timestamp: Date.now()
         }), { qos: 0, retain: true });
         console.log('[GV] Đã phát slide siêu nét (~' + Math.round(base64Image.length / 1024) + ' KB)');
@@ -2093,9 +2101,26 @@
     function startSmartDiffLoop() {
       if (captureInterval) clearInterval(captureInterval);
       lastThumbData = null;
-      setTimeout(() => captureAndSendSlide(true), 400);
-      setTimeout(() => captureAndSendSlide(true), 1200);
-      captureInterval = setInterval(() => captureAndSendSlide(false), 800);
+      lastSentImage = null;
+
+      // Liên tục kiểm tra và bắt buộc phát khung hình đầu tiên ngay khi video sẵn sàng
+      let tries = 0;
+      const initialTimer = setInterval(() => {
+        tries++;
+        if (previewVideo && previewVideo.videoWidth > 0) {
+          captureAndSendSlide(true);
+          if (lastSentImage) clearInterval(initialTimer);
+        }
+        if (tries > 25) clearInterval(initialTimer);
+      }, 250);
+
+      captureInterval = setInterval(() => {
+        if (!lastSentImage) {
+          captureAndSendSlide(true);
+        } else {
+          captureAndSendSlide(false);
+        }
+      }, 700);
     }
 
     // --- CHẾ ĐỘ 2: LIVE STREAM JITSI ---

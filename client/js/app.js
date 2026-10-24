@@ -148,8 +148,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sessionData.mode === 'smart') {
         // Chế độ Slide Siêu Nét: tắt Jitsi, chỉ hiện ảnh slide
         destroyLiveStreamFrame();
-        if (waitingCard) waitingCard.style.display = 'none';
-        if (currentSlideImg) currentSlideImg.style.display = 'block';
+        if (currentSlideImg && currentSlideImg.complete && currentSlideImg.naturalWidth > 0) {
+          currentSlideImg.style.display = 'block';
+          if (waitingCard) waitingCard.style.display = 'none';
+        } else {
+          // Chưa có ảnh hoặc đang tải: giữ màn hình chờ rõ ràng và yêu cầu lấy slide
+          if (waitingCard) {
+            if (waitingTitle) waitingTitle.textContent = '⚡ Thầy/Cô đang phát Slide Siêu Nét';
+            if (waitingDesc) waitingDesc.textContent = 'Đang nhận hình ảnh bài giảng mới nhất...';
+            waitingCard.style.display = 'flex';
+          }
+          if (connection) connection.requestCurrentSlide();
+        }
         if (syncStatusText) syncStatusText.textContent = '⚡ Xem Slide Siêu Nét';
       } else if (sessionData.mode === 'live') {
         // Chế độ Live Stream: khởi tạo Jitsi
@@ -165,10 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // Giáo viên dừng hoặc chưa phát
       destroyLiveStreamFrame();
-      if (currentSlideImg) currentSlideImg.style.display = 'none';
+      if (currentSlideImg) {
+        currentSlideImg.style.display = 'none';
+        currentSlideImg.removeAttribute('src');
+      }
       if (waitingCard) {
         if (waitingTitle) waitingTitle.textContent = `🟢 Đã vào phòng học [${currentRoomCode || '1234'}]`;
-        if (waitingDesc) waitingDesc.textContent = 'Đang chờ Thầy/Cô bắt đầu phát sóng bài giảng...';
+        if (waitingDesc) waitingDesc.textContent = 'Thầy/Cô đang chuẩn bị bài giảng hoặc chưa bắt đầu trình chiếu.';
         waitingCard.style.display = 'flex';
       }
       if (syncStatusText) syncStatusText.textContent = 'Chờ Thầy/Cô phát bài';
@@ -245,15 +258,28 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('🟢 Đang xem Live Stream bài giảng từ Thầy/Cô!');
     },
     onSlideUpdate: (slideData) => {
+      if (!slideData) return;
+      if (slideData.stopped || !slideData.imageUrl) {
+        if (currentSlideImg) currentSlideImg.style.display = 'none';
+        if (waitingCard) {
+          if (waitingTitle) waitingTitle.textContent = `🟢 Đã vào phòng học [${currentRoomCode || '1234'}]`;
+          if (waitingDesc) waitingDesc.textContent = 'Thầy/Cô đang tạm dừng chia sẻ màn hình.';
+          waitingCard.style.display = 'flex';
+        }
+        return;
+      }
       if (currentSlideImg) {
+        currentSlideImg.onload = () => {
+          currentSlideImg.style.display = 'block';
+          if (waitingCard) waitingCard.style.display = 'none';
+        };
         currentSlideImg.src = slideData.imageUrl;
-        currentSlideImg.style.display = 'block';
       }
       destroyLiveStreamFrame();
-      if (waitingCard) waitingCard.style.display = 'none';
       if (slideCounter) {
         slideCounter.textContent = `${slideData.slideNumber || 1}/${slideData.totalSlides || 1}`;
       }
+      if (syncStatusText) syncStatusText.textContent = '⚡ Đang xem Slide';
     },
     onQuizStart: (quizData) => {
       showQuiz(quizData);
