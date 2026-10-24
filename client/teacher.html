@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/peerjs.min.js"></script>
+  <script src="js/mqtt.min.js"></script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -387,7 +387,7 @@
 
     <div class="status-badge">
       <span id="status-dot" class="status-dot"></span>
-      <span id="status-text">Chưa phát sóng</span>
+      <span id="status-text">Đang kết nối Cloud...</span>
     </div>
   </header>
 
@@ -510,11 +510,11 @@
   </div>
 
   <script>
-    // Mã lớp học mặc định cố định 1234
+    const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
     let classCode = localStorage.getItem('classlive_teacher_room') || '1234';
 
-    function getRoomPeerId(code) {
-      return `hncanhlsts-room-${code.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    function getCleanCode(code) {
+      return (code || '1234').toLowerCase().replace(/[^a-z0-9]/g, '');
     }
 
     function updateCodeUI() {
@@ -531,7 +531,7 @@
       classCode = Math.floor(1000 + Math.random() * 9000).toString();
       localStorage.setItem('classlive_teacher_room', classCode);
       updateCodeUI();
-      reconnectPeer();
+      initMqtt();
     });
 
     document.getElementById('btn-custom-code').addEventListener('click', () => {
@@ -540,23 +540,22 @@
         classCode = custom.trim().toUpperCase();
         localStorage.setItem('classlive_teacher_room', classCode);
         updateCodeUI();
-        reconnectPeer();
+        initMqtt();
       }
     });
 
     updateCodeUI();
 
-    let peer = null;
-    let connections = new Map(); // studentPeerId -> { conn, name, isHandRaised, stars: 0, currentAnswer: null }
+    let mqttClient = null;
+    let students = new Map(); // studentId -> { name, isHandRaised, stars, currentAnswer, lastSeen }
     let mediaStream = null;
     let captureInterval = null;
 
-    // Trạng thái câu hỏi tương tác
     let currentQuiz = {
       active: false,
-      type: 'mcq', // 'mcq', 'tf', 'short', 'poll'
+      type: 'mcq',
       correctAnswer: 'A',
-      answers: {} // studentPeerId -> answer
+      answers: {} // studentId -> answer
     };
 
     const btnStart = document.getElementById('btn-start');
@@ -571,7 +570,7 @@
     const captureCanvas = document.getElementById('capture-canvas');
     const ctx = captureCanvas.getContext('2d');
 
-    // Các phần tử Quiz
+    // Quiz DOM
     const typeTabs = document.querySelectorAll('.type-tab');
     const correctAnsWrapper = document.getElementById('correct-ans-wrapper');
     const ansBtnGroup = document.getElementById('ans-btn-group');
@@ -585,7 +584,6 @@
     const shortAnswersWrapper = document.getElementById('short-answers-wrapper');
     const shortAnswersGrid = document.getElementById('short-answers-grid');
 
-    // Chuyển đổi dạng câu hỏi
     typeTabs.forEach(tab => {
       tab.addEventListener('click', () => {
         typeTabs.forEach(t => t.classList.remove('active'));
@@ -619,7 +617,6 @@
           ansBtnGroup.appendChild(b);
         });
       } else {
-        // Tự luận hoặc Khảo sát: không có đáp án đúng cố định
         correctAnsWrapper.style.display = 'none';
         currentQuiz.correctAnswer = null;
       }
@@ -633,11 +630,105 @@
 
     setupAnswerSelector();
 
-    // BẮT ĐẦU CÂU HỎI CHO HỌC SINH
+    // ==========================================
+    // KHỞI TẠO MẠNG MQTT SIÊU TỐC
+    // ==========================================
+    function initMqtt() {
+      if (mqttClient) {
+        mqttClient.end(true);
+      }
+      students.clear();
+      updateStudentUI();
+
+      statusDot.classList.remove('active');
+      statusText.textContent = 'Đang kết nối Cloud...';
+
+      const cleanCode = getCleanCode(classCode);
+      const teacherClientId = `classlive_tch_${cleanCode}_${Date.now()}`;
+
+      mqttClient = mqtt.connect(MQTT_BROKER, {
+        clientId: teacherClientId,
+        clean: true,
+        connectTimeout: 8000,
+        reconnectPeriod: 2500
+      });
+
+      mqttClient.on('connect', () => {
+        statusDot.classList.add('active');
+        statusText.textContent = `🟢 Đã sẵn sàng (Mã: ${classCode})`;
+        console.log('[GV] Đã kết nối MQTT Broker thành công!');
+
+        // Lắng nghe tín hiệu từ học sinh của phòng này
+        const studentTopic = `classlive/hncanhlsts/${cleanCode}/student/+`;
+        const answerTopic = `classlive/hncanhlsts/${cleanCode}/answer/+`;
+        mqttClient.subscribe([studentTopic, answerTopic], { qos: 0 });
+      });
+
+      mqttClient.on('message', (topic, message) => {
+        try {
+          const data = JSON.parse(message.toString());
+          const cleanCode = getCleanCode(classCode);
+
+          if (topic.includes(`/student/`)) {
+            // Học sinh điểm danh / nhịp tim
+            const sId = data.id;
+            let s = students.get(sId);
+            if (!s) {
+              s = { name: data.name, isHandRaised: !!data.isHandRaised, stars: 0, currentAnswer: null, lastSeen: Date.now() };
+              students.set(sId, s);
+            } else {
+              s.name = data.name;
+              s.isHandRaised = !!data.isHandRaised;
+              s.lastSeen = Date.now();
+            }
+            updateStudentUI();
+
+          } else if (topic.includes(`/answer/`)) {
+            // Học sinh nộp bài trắc nghiệm / tự luận
+            const sId = data.id;
+            currentQuiz.answers[sId] = data.answer;
+            const s = students.get(sId);
+            if (s) {
+              s.currentAnswer = data.answer;
+            }
+            updateStatsUI();
+            updateStudentUI();
+          }
+        } catch (e) {
+          console.error('Lỗi nhận message:', e);
+        }
+      });
+
+      mqttClient.on('offline', () => {
+        statusDot.classList.remove('active');
+        statusText.textContent = 'Mất mạng Cloud. Đang tự thử lại...';
+      });
+    }
+
+    // Dọn dẹp học sinh offline quá 20s
+    setInterval(() => {
+      const now = Date.now();
+      let changed = false;
+      students.forEach((s, id) => {
+        if (now - s.lastSeen > 25000) {
+          students.delete(id);
+          delete currentQuiz.answers[id];
+          changed = true;
+        }
+      });
+      if (changed) {
+        updateStudentUI();
+        updateStatsUI();
+      }
+    }, 5000);
+
+    // ==========================================
+    // ĐIỀU KHIỂN CÂU HỎI & KHEN THƯỞNG
+    // ==========================================
     btnLaunchQuiz.addEventListener('click', () => {
       currentQuiz.active = true;
       currentQuiz.answers = {};
-      connections.forEach(s => { s.currentAnswer = null; });
+      students.forEach(s => { s.currentAnswer = null; });
 
       btnLaunchQuiz.style.display = 'none';
       btnEndQuiz.style.display = 'inline-flex';
@@ -648,24 +739,25 @@
       statsContainer.style.display = 'block';
       updateStatsUI();
 
-      // Phát tín hiệu tới toàn bộ học sinh
-      broadcastData({
-        type: 'QUIZ_START',
+      const cleanCode = getCleanCode(classCode);
+      const payload = {
+        action: 'start',
         quizType: currentQuiz.type,
         options: currentQuiz.type === 'mcq' ? ['A', 'B', 'C', 'D'] : (currentQuiz.type === 'tf' ? ['Đúng', 'Sai'] : (currentQuiz.type === 'poll' ? ['🟢 Đã hiểu rõ', '🟡 Còn băn khoăn', '🔴 Chưa hiểu'] : []))
-      });
+      };
+      mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify(payload), { qos: 0, retain: true });
     });
 
-    // DỪNG NHẬN BÀI
     btnEndQuiz.addEventListener('click', () => {
       currentQuiz.active = false;
       btnEndQuiz.style.display = 'none';
       quizBadgeStatus.textContent = '⏹️ Đã dừng nhận bài';
       quizBadgeStatus.style.color = '#f59e0b';
-      broadcastData({ type: 'QUIZ_STOP' });
+
+      const cleanCode = getCleanCode(classCode);
+      mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify({ action: 'stop' }), { qos: 0, retain: true });
     });
 
-    // CÔNG BỐ ĐÁP ÁN & KHEN THƯỞNG / ĐỘNG VIÊN
     btnRevealQuiz.addEventListener('click', () => {
       currentQuiz.active = false;
       btnEndQuiz.style.display = 'none';
@@ -674,40 +766,29 @@
       quizBadgeStatus.textContent = '🎉 Đã công bố kết quả';
       quizBadgeStatus.style.color = '#6366f1';
 
-      // Tính kết quả cho từng học sinh và thưởng sao
-      const resultsSummary = {};
-      connections.forEach((student, id) => {
+      const cleanCode = getCleanCode(classCode);
+
+      // Công bố kết quả tới toàn bộ học sinh
+      students.forEach((student, id) => {
         const studentAns = currentQuiz.answers[id];
         const isCorrect = currentQuiz.correctAnswer ? (studentAns === currentQuiz.correctAnswer) : true;
-        
         if (isCorrect && currentQuiz.correctAnswer) {
-          student.stars = (student.stars || 0) + 1; // Thưởng 1 sao
+          student.stars = (student.stars || 0) + 1;
         }
 
-        resultsSummary[id] = {
-          name: student.name,
-          answer: studentAns,
+        const payload = {
+          correctAnswer: currentQuiz.correctAnswer,
+          yourAnswer: studentAns,
           isCorrect: isCorrect,
           stars: student.stars || 0
         };
-
-        // Gửi kết quả riêng cho từng học sinh
-        if (student.conn && student.conn.open) {
-          student.conn.send({
-            type: 'QUIZ_REVEAL',
-            correctAnswer: currentQuiz.correctAnswer,
-            yourAnswer: studentAns,
-            isCorrect: isCorrect,
-            stars: student.stars || 0
-          });
-        }
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz_reveal`, JSON.stringify(payload), { qos: 0 });
       });
 
       updateStatsUI(true);
       updateStudentUI();
     });
 
-    // Cập nhật biểu đồ thống kê
     function updateStatsUI(revealed = false) {
       const totalAnswers = Object.keys(currentQuiz.answers).length;
       submittedCount.textContent = totalAnswers;
@@ -716,7 +797,7 @@
         barsWrapper.style.display = 'none';
         shortAnswersWrapper.style.display = 'block';
         shortAnswersGrid.innerHTML = Object.entries(currentQuiz.answers).map(([id, text]) => {
-          const s = connections.get(id);
+          const s = students.get(id);
           return `<div class="answer-card"><div class="author">👤 ${s ? s.name : 'Học sinh'}</div><div>${text}</div></div>`;
         }).join('') || '<div style="color: #64748b; font-size: 13px;">Chưa có câu trả lời nào...</div>';
         return;
@@ -754,99 +835,22 @@
       }).join('');
     }
 
-    function reconnectPeer() {
-      if (peer) {
-        peer.destroy();
-        peer = null;
-      }
-      connections.clear();
-      updateStudentUI();
-      initPeer();
-    }
-
-    const PEER_CONFIG = {
-      debug: 0,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:stun.cloudflare.com:3478' }
-        ]
-      }
-    };
-
-    function initPeer() {
-      const roomPeerId = getRoomPeerId(classCode);
-      peer = new Peer(roomPeerId, PEER_CONFIG);
-
-      peer.on('open', (id) => {
-        console.log('[GV] Phòng sẵn sàng:', id);
-      });
-
-      peer.on('connection', (conn) => {
-        const studentPeerId = conn.peer;
-
-        conn.on('open', () => {
-          connections.set(studentPeerId, { conn: conn, name: 'Học sinh', stars: 0 });
-          updateStudentUI();
-          if (mediaStream) {
-            peer.call(studentPeerId, mediaStream);
-          }
-          sendCurrentFrame(conn);
-        });
-
-        conn.on('data', (data) => {
-          const student = connections.get(studentPeerId);
-          if (!student) return;
-
-          if (data.type === 'JOIN') {
-            student.name = data.name || 'Học sinh';
-            updateStudentUI();
-          } else if (data.type === 'RAISE_HAND') {
-            student.isHandRaised = !!data.isRaised;
-            updateStudentUI();
-          } else if (data.type === 'QUIZ_ANSWER') {
-            currentQuiz.answers[studentPeerId] = data.answer;
-            student.currentAnswer = data.answer;
-            updateStatsUI();
-            updateStudentUI();
-          }
-        });
-
-        conn.on('close', () => {
-          connections.delete(studentPeerId);
-          delete currentQuiz.answers[studentPeerId];
-          updateStatsUI();
-          updateStudentUI();
-        });
-      });
-    }
-
-    function broadcastData(data) {
-      connections.forEach(item => {
-        if (item.conn && item.conn.open) {
-          item.conn.send(data);
-        }
-      });
-    }
-
-    // Tặng sao trực tiếp cho học sinh
-    window.awardStar = function(studentPeerId) {
-      const student = connections.get(studentPeerId);
-      if (student) {
-        student.stars = (student.stars || 0) + 1;
+    window.awardStar = function(studentId) {
+      const s = students.get(studentId);
+      if (s) {
+        s.stars = (s.stars || 0) + 1;
         updateStudentUI();
-        if (student.conn && student.conn.open) {
-          student.conn.send({
-            type: 'STAR_AWARD',
-            stars: student.stars,
-            message: '🌟 Thầy/Cô vừa tặng bạn 1 Ngôi Sao vì phát biểu tích cực!'
-          });
-        }
+        const cleanCode = getCleanCode(classCode);
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/star/${studentId}`, JSON.stringify({
+          stars: s.stars,
+          message: '🌟 Thầy/Cô vừa tặng bạn 1 Ngôi Sao vì phát biểu tích cực!'
+        }), { qos: 0 });
       }
     };
 
+    // ==========================================
+    // CHIA SẺ MÀN HÌNH BÀI GIẢNG QUA CLOUD
+    // ==========================================
     btnStart.addEventListener('click', async () => {
       try {
         mediaStream = await navigator.mediaDevices.getDisplayMedia({
@@ -867,10 +871,6 @@
 
         mediaStream.getVideoTracks()[0].onended = () => { stopBroadcasting(); };
         startFrameCapture();
-
-        connections.forEach((item, studentPeerId) => {
-          if (peer) peer.call(studentPeerId, mediaStream);
-        });
 
       } catch (err) {
         console.error('Lỗi chia sẻ:', err);
@@ -894,53 +894,57 @@
       btnStop.style.display = 'none';
 
       statusDot.classList.remove('active');
-      statusText.textContent = 'Đã dừng phát sóng';
+      statusText.textContent = `Đã dừng phát sóng (Mã: ${classCode})`;
     }
 
     function startFrameCapture() {
       if (captureInterval) clearInterval(captureInterval);
       captureInterval = setInterval(() => {
         if (!mediaStream || previewVideo.videoWidth === 0) return;
-        captureCanvas.width = previewVideo.videoWidth;
-        captureCanvas.height = previewVideo.videoHeight;
-        ctx.drawImage(previewVideo, 0, 0, captureCanvas.width, captureCanvas.height);
-        const base64Image = captureCanvas.toDataURL('image/jpeg', 0.82);
-        broadcastData({ type: 'SLIDE_CHANGE', imageUrl: base64Image });
-      }, 800);
-    }
+        captureCanvas.width = 1280;
+        captureCanvas.height = 720;
+        ctx.drawImage(previewVideo, 0, 0, 1280, 720);
 
-    function sendCurrentFrame(conn) {
-      if (captureCanvas.width > 0 && conn.open) {
-        const base64Image = captureCanvas.toDataURL('image/jpeg', 0.82);
-        conn.send({ type: 'SLIDE_CHANGE', imageUrl: base64Image });
-      }
+        // Nén ảnh chất lượng 70% (~60KB) để phát siêu mượt
+        const base64Image = captureCanvas.toDataURL('image/jpeg', 0.70);
+        const cleanCode = getCleanCode(classCode);
+
+        // Publish với RETAIN = TRUE để học sinh mới vào là thấy slide ngay tức khắc!
+        if (mqttClient && mqttClient.connected) {
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
+            slideNumber: 1,
+            totalSlides: 1,
+            imageUrl: base64Image
+          }), { qos: 0, retain: true });
+        }
+      }, 1200);
     }
 
     function updateStudentUI() {
-      studentCount.textContent = connections.size;
-      if (connections.size === 0) {
+      studentCount.textContent = students.size;
+      if (students.size === 0) {
         studentList.innerHTML = `<li style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">Chưa có học sinh nào kết nối.<br>Học sinh nhập mã của bạn sẽ hiện tên tại đây.</li>`;
         return;
       }
       let html = '';
-      connections.forEach((item, studentId) => {
+      students.forEach((s, sId) => {
         html += `
-          <li class="student-item ${item.isHandRaised ? 'hand-raised' : ''}">
+          <li class="student-item ${s.isHandRaised ? 'hand-raised' : ''}">
             <div>
-              <span>${item.isHandRaised ? '✋ ' : '👤 '}<b>${item.name}</b></span>
-              <span style="font-size: 11px; margin-left: 6px; color: #fbbf24;">⭐ ${item.stars || 0}</span>
-              <div style="font-size: 11px; color: ${item.currentAnswer ? '#10b981' : '#64748b'};">
-                ${item.currentAnswer ? 'Đã nộp: ' + item.currentAnswer : (item.isHandRaised ? 'Đang giơ tay!' : 'Đang theo dõi')}
+              <span>${s.isHandRaised ? '✋ ' : '👤 '}<b>${s.name}</b></span>
+              <span style="font-size: 11px; margin-left: 6px; color: #fbbf24;">⭐ ${s.stars || 0}</span>
+              <div style="font-size: 11px; color: ${s.currentAnswer ? '#10b981' : '#64748b'};">
+                ${s.currentAnswer ? 'Đã nộp: ' + s.currentAnswer : (s.isHandRaised ? 'Đang giơ tay!' : 'Đang theo dõi')}
               </div>
             </div>
-            <button class="btn-star-add" onclick="awardStar('${studentId}')" title="Tặng sao cho học sinh">⭐+1</button>
+            <button class="btn-star-add" onclick="awardStar('${sId}')" title="Tặng sao">⭐+1</button>
           </li>
         `;
       });
       studentList.innerHTML = html;
     }
 
-    initPeer();
+    initMqtt();
   </script>
 </body>
 </html>
