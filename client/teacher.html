@@ -396,7 +396,7 @@
     <div class="panel">
       <div class="top-controls">
         <button id="btn-start" class="btn btn-start">
-          <span>🟢 BẬT TRÌNH CHIẾU CHO HỌC SINH</span>
+          <span>🟢 Bắt Đầu Trình Chiếu</span>
         </button>
         <button id="btn-stop" class="btn btn-stop" style="display: none;">
           <span>⏹️ Dừng Trình Chiếu</span>
@@ -405,11 +405,14 @@
 
       <div class="preview-box" id="preview-box">
         <div id="placeholder" class="placeholder-text">
-          <p style="font-size: 44px; margin-bottom: 12px;">📽️</p>
-          <p style="font-size: 18px; color: #fff; margin-bottom: 8px;"><b>Cách dùng cực kỳ đơn giản:</b></p>
-          <p>1. Đọc mã lớp: <b id="guide-code" style="color: #fbbf24;">1234</b> cho học sinh (hoặc quét mã QR bên phải).</p>
-          <p>2. Bấm nút màu xanh <b>"BẬT TRÌNH CHIẾU CHO HỌC SINH"</b> bên trên $\rightarrow$ chọn cửa sổ PowerPoint.</p>
-          <p>3. Dùng bảng tương tác bên dưới để giao câu hỏi trắc nghiệm, tự luận, lấy thống kê và khen thưởng!</p>
+          <div style="font-size: 52px; margin-bottom: 12px;">📽️</div>
+          <h3 style="font-size: 19px; color: #fff; margin-bottom: 8px; font-weight: 700;">Màn hình bài giảng đang ở chế độ chờ</h3>
+          <p style="font-size: 14px; color: #94a3b8; max-width: 480px; margin: 0 auto 10px;">
+            Mã lớp hiện tại: <b id="guide-code" style="color: #fbbf24; font-size: 18px; letter-spacing: 2px;">1234</b>
+          </p>
+          <p style="font-size: 13.5px; color: #a5b4fc;">
+            Nhấn nút <b>"Bắt đầu trình chiếu"</b> ở trên để phát bài giảng tới học sinh.
+          </p>
         </div>
         <video id="preview-video" autoplay playsinline muted style="display: none;"></video>
         <canvas id="capture-canvas" style="display: none;"></canvas>
