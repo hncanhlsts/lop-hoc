@@ -807,6 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const quizDeckBadge = document.getElementById('quiz-deck-badge');
     const quizNumBadge = document.getElementById('quiz-num-badge');
     const quizQuestionTitle = document.getElementById('quiz-question-title');
+    const quizQuestionImage = document.getElementById('quiz-question-image');
 
     if (quizData.questionText && quizPromptCard) {
       quizPromptCard.style.display = 'block';
@@ -819,6 +820,16 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           quizNumBadge.style.display = 'none';
         }
+      }
+      if (quizData.questionImage && quizQuestionImage) {
+        quizQuestionImage.src = quizData.questionImage;
+        quizQuestionImage.style.display = 'block';
+        quizQuestionImage.onclick = () => {
+          quizQuestionImage.style.maxHeight = (quizQuestionImage.style.maxHeight === '200px') ? '450px' : '200px';
+        };
+      } else if (quizQuestionImage) {
+        quizQuestionImage.style.display = 'none';
+        quizQuestionImage.src = '';
       }
     } else if (quizPromptCard) {
       quizPromptCard.style.display = 'none';
@@ -948,8 +959,26 @@ document.addEventListener('DOMContentLoaded', () => {
     quizOverlay.style.display = 'block';
     setTimeout(() => {
       quizOverlay.classList.add('open');
+      renderMathSafely(quizOverlay);
     }, 20);
     showToast('🎯 Thầy cô vừa giao câu hỏi mới!');
+  }
+
+  function renderMathSafely(container) {
+    if (!container) return;
+    if (typeof renderMathInElement !== 'undefined') {
+      try {
+        renderMathInElement(container, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      } catch (e) {}
+    }
   }
 
   function submitStudentAnswer(answer, textFeedback) {
@@ -1040,6 +1069,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       showToast('💪 Đừng buồn nhé, lần sau cố gắng hơn!');
     }
+    setTimeout(() => renderMathSafely(quizResultBanner), 25);
   }
 
   btnCloseQuiz.addEventListener('click', () => {

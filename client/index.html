@@ -10,6 +10,9 @@
   <link rel="stylesheet" href="css/style.css?v=5.0">
   <script src="js/mqtt.min.js?v=5.0"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
 
@@ -185,6 +188,7 @@
                 <span id="quiz-num-badge" class="quiz-num-badge">Câu 1/5</span>
               </div>
               <div id="quiz-question-title" class="quiz-question-title"></div>
+              <img id="quiz-question-image" style="display: none; max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 8px; object-fit: contain; border: 1.5px solid #4f46e5; cursor: pointer;" title="Chạm để xem to" />
             </div>
 
             <!-- 1. Trắc nghiệm (A, B, C, D) & Đúng/Sai -->
