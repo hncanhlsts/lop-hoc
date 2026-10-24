@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Lớp Học Trực Tuyến - Xem Slide Bài Giảng</title>
-  <link rel="stylesheet" href="css/style.css?v=4.6">
-  <script src="js/mqtt.min.js?v=4.6"></script>
+  <link rel="stylesheet" href="css/style.css?v=4.7">
+  <script src="js/mqtt.min.js?v=4.7"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
@@ -67,6 +67,12 @@
         </button>
       </form>
 
+      <div style="text-align: center; margin-top: 12px; margin-bottom: 4px;">
+        <button type="button" id="btn-clear-student-cache" style="background: none; border: none; color: #94a3b8; font-size: 12px; cursor: pointer; text-decoration: underline;" title="Xóa sạch toàn bộ cookies và bộ nhớ đệm">
+          🧹 Xóa cookies & làm sạch bộ nhớ
+        </button>
+      </div>
+
       <div class="tip-box">
         <span>💡</span>
         <span><b>Mẹo:</b> Em có thể dùng 2 ngón tay phóng to/thu nhỏ bài giảng để đọc rõ chữ nhỏ!</span>
@@ -91,8 +97,9 @@
         <span id="slide-counter">1/1</span>
       </div>
 
-      <div class="header-right">
+      <div class="header-right" style="display: flex; gap: 8px; align-items: center;">
         <button id="btn-fullscreen" class="btn-icon" title="Toàn màn hình">⛶</button>
+        <button id="btn-leave-room" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); font-size: 12.5px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Rời lớp học và xóa sạch cookies">🚪 Thoát Lớp</button>
       </div>
     </header>
 
@@ -216,7 +223,7 @@
   <div id="toast" class="toast"></div>
 
   <!-- Scripts (Cache-busting version 3.5) -->
-  <script src="js/connection.js?v=4.6"></script>
-  <script src="js/app.js?v=4.6"></script>
+  <script src="js/connection.js?v=4.7"></script>
+  <script src="js/app.js?v=4.7"></script>
 </body>
 </html>

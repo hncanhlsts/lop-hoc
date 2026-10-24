@@ -191,6 +191,24 @@ class SlideConnection {
     this.connectToBroker(this.brokerIndex + 1);
   }
 
+  disconnect() {
+    this.isConnected = false;
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
+    if (this.demoInterval) {
+      clearInterval(this.demoInterval);
+      this.demoInterval = null;
+    }
+    if (this.client) {
+      try {
+        this.client.end(true);
+      } catch (e) {}
+      this.client = null;
+    }
+  }
+
   initDemoMode() {
     this.isDemoMode = true;
     this.onStatusChange('connected', 'Chế độ Trải nghiệm mẫu (Demo)');

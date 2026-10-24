@@ -80,6 +80,36 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   window.showToast = showToast;
 
+  // --- HÀM XÓA SẠCH TOÀN BỘ COOKIES, LOCALSTORAGE, SESSION VÀ CACHE ---
+  function clearAllCookiesAndStorage() {
+    try {
+      // 1. Xóa mọi cookie hiện hành
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const c = cookies[i];
+        const eqPos = c.indexOf("=");
+        const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
+        if (name) {
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+        }
+      }
+      // 2. Xóa sạch localStorage & sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+      // 3. Xóa cache Service Worker nếu có
+      if (typeof caches !== 'undefined') {
+        caches.keys().then(keys => {
+          keys.forEach(k => caches.delete(k));
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Lỗi khi xóa cookies & cache:', e);
+    }
+  }
+  window.clearAllCookiesAndStorage = clearAllCookiesAndStorage;
+
+
   let currentRoomCode = "";
   let currentStudentName = "";
   let currentSessionMode = null;
@@ -760,6 +790,63 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       quizOverlay.style.display = 'none';
     }, 350);
+  });
+
+  
+  // --- NÚT THOÁT LỚP / RỜI LỚP (XOÁ SẠCH COOKIES & CACHE) ---
+  const btnLeaveRoom = document.getElementById('btn-leave-room');
+  if (btnLeaveRoom) {
+    btnLeaveRoom.addEventListener('click', () => {
+      if (confirm('Bạn có chắc muốn rời lớp học và xóa sạch cookies/dữ liệu phiên làm việc này không?')) {
+        leaveClassroomAndClean();
+      }
+    });
+  }
+
+  const btnClearStudentCache = document.getElementById('btn-clear-student-cache');
+  if (btnClearStudentCache) {
+    btnClearStudentCache.addEventListener('click', () => {
+      clearAllCookiesAndStorage();
+      if (classCodeInput) classCodeInput.value = '';
+      if (studentNameInput) studentNameInput.value = '';
+      showToast('🧹 Đã xóa sạch toàn bộ cookies và bộ nhớ tạm trình duyệt!');
+    });
+  }
+
+  function leaveClassroomAndClean() {
+    // 1. Ngắt kết nối MQTT
+    if (connection) connection.disconnect();
+
+    // 2. Xóa sạch cookies, localStorage, cache
+    clearAllCookiesAndStorage();
+
+    // 3. Đặt lại form và UI
+    destroyLiveStreamFrame();
+    closeAndResetQuiz();
+    if (currentSlideImg) {
+      currentSlideImg.src = '';
+      currentSlideImg.style.display = 'none';
+    }
+    if (slideCounter) slideCounter.textContent = '1/1';
+    if (syncStatusText) syncStatusText.textContent = '⚡ Đang chờ bài giảng...';
+    if (studentNameInput) studentNameInput.value = '';
+    currentRoomCode = '';
+    currentStudentName = '';
+
+    // 4. Quay về màn hình đăng nhập
+    viewerScreen.classList.add('hidden');
+    joinScreen.classList.remove('hidden');
+    showToast('🚪 Đã rời lớp và xóa sạch cookies!');
+  }
+
+  // Tự động dọn sạch khi học sinh đóng tab hoặc thoát trang
+  window.addEventListener('beforeunload', () => {
+    if (connection) connection.disconnect();
+    clearAllCookiesAndStorage();
+  });
+  window.addEventListener('pagehide', () => {
+    if (connection) connection.disconnect();
+    clearAllCookiesAndStorage();
   });
 
   // --- Tiện ích Toast thông báo đã chuyển lên trên ---

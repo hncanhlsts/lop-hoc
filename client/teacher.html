@@ -385,6 +385,7 @@
       <button id="btn-random-code" class="btn-action-small" title="Tạo mã số ngẫu nhiên mới">🎲 Đổi mã khác</button>
       <button id="btn-custom-code" class="btn-action-small" title="Tự đặt mã theo tên lớp, ví dụ 12A1">✏️ Tự đặt tên</button>
       <button id="btn-open-leaderboard" class="btn-action-small" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #fff; font-weight: 700; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;" title="Xem bảng xếp hạng học sinh nhiều sao">🏆 Bảng Vinh Danh</button>
+      <button id="btn-clear-cache" class="btn-action-small" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);" title="Xóa cookies & làm sạch bộ nhớ tạm">🧹 Xóa Cookies / Cache</button>
       <button id="btn-export-csv" class="btn-action-small" style="background: #10b981; color: #fff; font-weight: 700; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer;" title="Tải file Excel thống kê">📥 Xuất Báo Cáo</button>
     </div>
 
@@ -695,6 +696,41 @@
       classCode = Math.floor(1000 + Math.random() * 9000).toString();
       localStorage.setItem('classlive_teacher_room', classCode);
       updateCodeUI();
+
+    // Xóa cookies & cache giáo viên khi bấm nút
+    const btnClearCache = document.getElementById('btn-clear-cache');
+    if (btnClearCache) {
+      btnClearCache.addEventListener('click', () => {
+        if (confirm('Bạn có muốn xóa sạch cookies và bộ nhớ tạm trình duyệt không?\nTrang sẽ tự động làm mới sau khi xóa.')) {
+          try {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+              const c = cookies[i];
+              const eqPos = c.indexOf("=");
+              const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
+              if (name) {
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+              }
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+            if (typeof caches !== 'undefined') {
+              caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+            }
+          } catch(e) {}
+          window.location.reload();
+        }
+      });
+    }
+
+    // Tự động giải phóng khi đóng tab
+    window.addEventListener('beforeunload', () => {
+      if (mqttClient) {
+        try { mqttClient.end(true); } catch(e) {}
+      }
+    });
+
       
     // --- Ghim câu trả lời xuất sắc lên đầu bảng ---
     window.pinStudentAnswer = function(studentId, text) {
