@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=3.6"></script>
+  <script src="js/mqtt.min.js?v=3.7"></script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -874,6 +874,8 @@
     // ==========================================
     // CHIA SẺ MÀN HÌNH BÀI GIẢNG QUA VDO.NINJA (100% KHÔNG CẦN TÀI KHOẢN)
     // ==========================================
+    let shareWindow = null;
+
     btnStart.addEventListener('click', () => {
       startLiveStream();
     });
@@ -886,6 +888,12 @@
       const cleanCode = getCleanCode(classCode);
       const streamId = 'ClassLive_hncanhlsts_' + cleanCode;
 
+      // URL phát màn hình: Mở cửa sổ riêng để vượt qua rào cản bảo mật iframe của Chrome
+      const pushUrl = `https://vdo.ninja/?push=${streamId}&screenshare=1&screensharecontenthint=detail&autostart=1&meshcast=1&webcam=0&audio=0`;
+      
+      // Mở cửa sổ chọn màn hình chia sẻ
+      shareWindow = window.open(pushUrl, 'ClassLiveShare', 'width=900,height=600');
+
       teacherStreamFrame.innerHTML = '';
       teacherStreamFrame.style.display = 'block';
       placeholder.style.display = 'none';
@@ -897,25 +905,32 @@
       statusDot.classList.add('active');
       statusText.textContent = `🟢 ĐANG PHÁT LIVE STREAM (MÃ: ${classCode})`;
 
-      // VDO.Ninja Publisher URL: Tự động yêu cầu chọn màn hình PowerPoint, không login, không giao diện thừa
-      const pushUrl = `https://vdo.ninja/?push=${streamId}&screenshare=1&screensharecontenthint=detail&autostart=1&meshcast=1&webcam=0&audio=0`;
-
+      // Hiển thị khung giám sát thực tế (học sinh thấy gì thầy cô thấy đó)
+      const monitorUrl = `https://vdo.ninja/?view=${streamId}&cleanviewer=1&noaudio=1`;
       teacherStreamFrame.innerHTML = `
-        <iframe src="${pushUrl}" 
-                allow="camera; microphone; display-capture; autoplay; fullscreen" 
-                style="width: 100%; height: 440px; border: none; border-radius: 8px; display: block;">
+        <iframe src="${monitorUrl}" 
+                allow="autoplay; fullscreen" 
+                style="width: 100%; height: 420px; border: none; border-radius: 8px; display: block; background: #000;">
         </iframe>
-        <div style="margin-top: 6px; text-align: center; font-size: 12px; color: #94a3b8;">
-          💡 <i>Trình duyệt sẽ hiện hộp thoại yêu cầu chọn màn hình (cửa sổ PowerPoint). Hãy bấm chọn và bấm <b>Chia sẻ</b>.</i>
+        <div style="margin-top: 8px; text-align: center; font-size: 13px; color: #a5b4fc;">
+          📺 <b>Màn hình giám sát:</b> Khung trên đang phản chiếu đúng những gì học sinh nhìn thấy.
           <br>
-          <a href="${pushUrl}" target="_blank" style="color: #818cf8; text-decoration: underline; font-size: 11.5px; display: inline-block; margin-top: 4px;">
-            Mở cửa sổ chia sẻ ở tab riêng (nếu trình duyệt của bạn chặn khung nhúng)
-          </a>
+          <button id="btn-reopen-share" style="margin-top: 6px; background: #3b82f6; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+            🔄 Bấm vào đây nếu chưa thấy hộp thoại chọn cửa sổ PowerPoint
+          </button>
         </div>
       `;
+
+      document.getElementById('btn-reopen-share').addEventListener('click', () => {
+        shareWindow = window.open(pushUrl, 'ClassLiveShare', 'width=900,height=600');
+      });
     }
 
     function stopLiveStream() {
+      if (shareWindow && !shareWindow.closed) {
+        shareWindow.close();
+        shareWindow = null;
+      }
       teacherStreamFrame.innerHTML = '';
       teacherStreamFrame.style.display = 'none';
       placeholder.style.display = 'block';
