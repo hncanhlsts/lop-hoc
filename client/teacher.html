@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=4.1"></script>
+  <script src="js/mqtt.min.js?v=4.2"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     :root {
@@ -395,13 +395,24 @@
   <div class="container">
     <!-- Cột trái: Khung phát sóng & Trung tâm Tương tác -->
     <div class="panel">
-      <div class="top-controls">
-        <button id="btn-start" class="btn btn-start">
-          <span>🟢 Bắt Đầu Trình Chiếu</span>
-        </button>
-        <button id="btn-stop" class="btn btn-stop" style="display: none;">
-          <span>⏹️ Dừng Trình Chiếu</span>
-        </button>
+      <div class="top-controls" style="display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: #1e293b; padding: 14px 18px; border-radius: 12px; border: 1.5px solid #4f46e5; margin-bottom: 16px;">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <label for="broadcast-mode" style="font-size: 14px; font-weight: 700; color: #a5b4fc; display: flex; align-items: center; gap: 6px;">
+            <span>📡 Chế độ phát sóng:</span>
+          </label>
+          <select id="broadcast-mode" style="background: #0f172a; color: #fbbf24; border: 1.5px solid #6366f1; border-radius: 8px; padding: 8px 14px; font-size: 13.5px; font-weight: 700; cursor: pointer; outline: none;">
+            <option value="smart" selected>⚡ Chụp Slide Siêu Nét (Khuyên Dùng - 0 Cần Tài Khoản)</option>
+            <option value="live">📽️ Live Stream Trực Tiếp (Jitsi Meet)</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="btn-start" class="btn btn-start">
+            <span>🟢 Bắt Đầu Trình Chiếu</span>
+          </button>
+          <button id="btn-stop" class="btn btn-stop" style="display: none;">
+            <span>⏹️ Dừng Trình Chiếu</span>
+          </button>
+        </div>
       </div>
 
       <div class="preview-box" id="preview-box" style="min-height: 420px; padding: 0;">
@@ -874,22 +885,157 @@
     };
 
     // ==========================================
-    // CHIA SẺ MÀN HÌNH BÀI GIẢNG QUA LIVE STREAM SFU
+    // CHIA SẺ MÀN HÌNH BÀI GIẢNG (HỖ TRỢ 2 CHẾ ĐỘ)
+    // 1. SMART SNAPSHOT: Chụp slide siêu nét khi đổi trang (0 tài khoản, 25KB, không tốn mạng)
+    // 2. LIVE STREAM SFU: Live stream video chuyển động qua Jitsi
     // ==========================================
+    const broadcastModeSelect = document.getElementById('broadcast-mode');
+    const previewVideo = document.getElementById('preview-video');
+    const captureCanvas = document.getElementById('capture-canvas');
+    const ctx = captureCanvas.getContext('2d');
+    let mediaStream = null;
+    let captureInterval = null;
+
     btnStart.addEventListener('click', () => {
-      startLiveStream();
+      const mode = broadcastModeSelect ? broadcastModeSelect.value : 'smart';
+      if (mode === 'smart') {
+        startSmartCapture();
+      } else {
+        startLiveStream();
+      }
     });
 
     btnStop.addEventListener('click', () => {
-      stopLiveStream();
+      stopBroadcasting();
     });
 
+    function stopBroadcasting() {
+      // Dừng Smart Capture
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+      }
+      if (captureInterval) {
+        clearInterval(captureInterval);
+        captureInterval = null;
+      }
+      if (previewVideo) previewVideo.style.display = 'none';
+
+      // Dừng Live Stream
+      if (teacherJitsiApi) {
+        try { teacherJitsiApi.dispose(); } catch (e) {}
+        teacherJitsiApi = null;
+      }
+      teacherStreamFrame.innerHTML = '';
+      teacherStreamFrame.style.display = 'none';
+
+      placeholder.style.display = 'block';
+      previewBox.classList.remove('broadcasting');
+
+      btnStart.style.display = 'inline-flex';
+      btnStop.style.display = 'none';
+
+      statusDot.classList.remove('active');
+      statusText.textContent = `Đã dừng phát sóng (Mã: ${classCode})`;
+    }
+
+    // --- CHẾ ĐỘ 1: CHỤP SLIDE SIÊU NÉT (SMART DIFF) ---
+    async function startSmartCapture() {
+      try {
+        mediaStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { cursor: "always", frameRate: { ideal: 5, max: 10 } },
+          audio: false
+        });
+
+        previewVideo.srcObject = mediaStream;
+        previewVideo.style.display = 'block';
+        previewVideo.play().catch(() => {});
+        placeholder.style.display = 'none';
+        teacherStreamFrame.style.display = 'none';
+        previewBox.classList.add('broadcasting');
+
+        btnStart.style.display = 'none';
+        btnStop.style.display = 'inline-flex';
+
+        statusDot.classList.add('active');
+        statusText.textContent = `⚡ ĐANG PHÁT SLIDE SIÊU NÉT (MÃ: ${classCode})`;
+
+        mediaStream.getVideoTracks()[0].onended = () => { stopBroadcasting(); };
+
+        startSmartDiffLoop();
+        previewVideo.onloadeddata = () => { captureAndSendSlide(true); };
+
+      } catch (err) {
+        console.warn('Hủy hoặc lỗi chọn màn hình:', err);
+      }
+    }
+
+    let lastThumbData = null;
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = 40;
+    thumbCanvas.height = 22;
+    const thumbCtx = thumbCanvas.getContext('2d');
+
+    function hasSlideChanged() {
+      if (!previewVideo || previewVideo.videoWidth === 0) return false;
+      thumbCtx.drawImage(previewVideo, 0, 0, 40, 22);
+      const currentData = thumbCtx.getImageData(0, 0, 40, 22).data;
+      if (!lastThumbData) {
+        lastThumbData = currentData;
+        return true;
+      }
+      let diff = 0;
+      for (let i = 0; i < currentData.length; i += 4) {
+        diff += Math.abs(currentData[i] - lastThumbData[i]);
+        diff += Math.abs(currentData[i+1] - lastThumbData[i+1]);
+        diff += Math.abs(currentData[i+2] - lastThumbData[i+2]);
+      }
+      const avgDiff = diff / (40 * 22 * 3);
+      if (avgDiff > 7) {
+        lastThumbData = currentData;
+        return true;
+      }
+      return false;
+    }
+
+    function captureAndSendSlide(force = false) {
+      if (!mediaStream || previewVideo.videoWidth === 0) return;
+      if (!force && !hasSlideChanged()) return;
+
+      captureCanvas.width = 1280;
+      captureCanvas.height = 720;
+      ctx.drawImage(previewVideo, 0, 0, 1280, 720);
+
+      const base64Image = captureCanvas.toDataURL('image/jpeg', 0.65);
+      const cleanCode = getCleanCode(classCode);
+
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
+          imageUrl: base64Image,
+          slideNumber: 1,
+          totalSlides: 1,
+          timestamp: Date.now()
+        }), { qos: 0, retain: true });
+        console.log('[GV] Đã phát slide siêu nét (~' + Math.round(base64Image.length / 1024) + ' KB)');
+      }
+    }
+
+    function startSmartDiffLoop() {
+      if (captureInterval) clearInterval(captureInterval);
+      lastThumbData = null;
+      setTimeout(() => captureAndSendSlide(true), 400);
+      setTimeout(() => captureAndSendSlide(true), 1200);
+      captureInterval = setInterval(() => captureAndSendSlide(false), 800);
+    }
+
+    // --- CHẾ ĐỘ 2: LIVE STREAM JITSI ---
     function startLiveStream() {
       const cleanCode = getCleanCode(classCode);
       const roomName = `ClassLive-hncanhlsts-${cleanCode}`;
 
       teacherStreamFrame.innerHTML = '';
       teacherStreamFrame.style.display = 'block';
+      previewVideo.style.display = 'none';
       placeholder.style.display = 'none';
       previewBox.classList.add('broadcasting');
 
@@ -939,7 +1085,7 @@
             }, 800);
           });
           teacherJitsiApi.addEventListener('readyToClose', () => {
-            stopLiveStream();
+            stopBroadcasting();
           });
         } else {
           teacherStreamFrame.innerHTML = `<iframe src="https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false" style="width:100%;height:440px;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
@@ -950,26 +1096,44 @@
       }
     }
 
-    function stopLiveStream() {
-      if (teacherJitsiApi) {
-        try {
-          teacherJitsiApi.dispose();
-        } catch (e) {
-          console.error(e);
+    // --- TÍNH NĂNG KÍCH HỌC SINH KHỎI LỚP ---
+    window.kickStudent = function(studentId, studentName) {
+      if (confirm(`Bạn có chắc muốn mời học sinh "${studentName}" ra khỏi lớp học?`)) {
+        students.delete(studentId);
+        updateStudentUI();
+        const cleanCode = getCleanCode(classCode);
+        if (mqttClient && mqttClient.connected) {
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/kick/${studentId}`, JSON.stringify({
+            message: 'Thầy/Cô đã mời bạn ra khỏi phòng học.'
+          }), { qos: 0 });
         }
-        teacherJitsiApi = null;
       }
-      teacherStreamFrame.innerHTML = '';
-      teacherStreamFrame.style.display = 'none';
-      placeholder.style.display = 'block';
-      previewBox.classList.remove('broadcasting');
+    };
 
-      btnStart.style.display = 'inline-flex';
-      btnStop.style.display = 'none';
+    // --- PHÍM TẮT TIỆN DỤNG KHI ĐANG TRÌNH CHIẾU POWERPOINT ---
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-      statusDot.classList.remove('active');
-      statusText.textContent = `Đã dừng phát sóng (Mã: ${classCode})`;
-    }
+      if (e.key === '1') {
+        const tab = document.querySelector('.type-tab[data-type="mcq"]');
+        if (tab) tab.click();
+        if (!currentQuiz.active) btnLaunchQuiz.click();
+      } else if (e.key === '2') {
+        const tab = document.querySelector('.type-tab[data-type="tf"]');
+        if (tab) tab.click();
+        if (!currentQuiz.active) btnLaunchQuiz.click();
+      } else if (e.key === '3') {
+        const tab = document.querySelector('.type-tab[data-type="short"]');
+        if (tab) tab.click();
+        if (!currentQuiz.active) btnLaunchQuiz.click();
+      } else if (e.key === 'F9' || (e.key === 'Escape' && currentQuiz.active)) {
+        if (currentQuiz.active) {
+          btnEndQuiz.click();
+        } else if (btnRevealQuiz.style.display !== 'none') {
+          btnRevealQuiz.click();
+        }
+      }
+    });
 
     function updateStudentUI() {
       studentCount.textContent = students.size;
