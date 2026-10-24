@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=5.0"></script>
+  <script src="js/mqtt.min.js?v=5.1"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -2182,14 +2182,6 @@
         totalQuestions: set.questions.length,
         questionText: q.question,
         questionImage: q.image || null,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation || '',
-        timestamp: Date.now()
-      };
-        questionIndex: currentDeckQIndex + 1,
-        totalQuestions: set.questions.length,
-        questionText: q.question,
         options: q.options,
         correctAnswer: q.correctAnswer,
         explanation: q.explanation || '',
