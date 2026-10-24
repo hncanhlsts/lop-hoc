@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Quiz overlay elements
   const quizOverlay = document.getElementById('quiz-overlay');
+  const quizIdleCard = document.getElementById('quiz-idle-card');
   const quizBadgeTitle = document.getElementById('quiz-badge-title');
   const btnCloseQuiz = document.getElementById('btn-close-quiz');
   const quizContentArea = document.getElementById('quiz-content-area');
@@ -175,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function closeAndResetQuiz() {
+    if (quizIdleCard) quizIdleCard.style.display = 'flex';
     currentQuiz = null;
     if (quizOverlay) {
       quizOverlay.classList.remove('open');
@@ -626,6 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // XỬ LÝ CÂU HỎI TƯƠNG TÁC (QUIZ / SHORT / POLL)
   // ==========================================
   function showQuiz(quizData) {
+    if (quizIdleCard) quizIdleCard.style.display = 'none';
     if (!quizData || quizData.action !== 'start') return;
     currentQuiz = quizData;
     quizResultBanner.style.display = 'none';
@@ -879,6 +882,56 @@ document.addEventListener('DOMContentLoaded', () => {
     if (connection) connection.disconnect();
     clearAllCookiesAndStorage();
   });
+
+  
+  // --- ĐIỀU KHIỂN PHÓNG TO / THU NHỎ SLIDE TÙY CHỌN ---
+  let slideZoomScale = 1;
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
+  const btnZoomReset = document.getElementById('btn-zoom-reset');
+
+  function updateSlideZoom() {
+    if (!currentSlideImg) return;
+    currentSlideImg.style.transform = `scale(${slideZoomScale})`;
+    if (btnZoomReset) btnZoomReset.textContent = `${Math.round(slideZoomScale * 100)}%`;
+  }
+
+  if (btnZoomIn) {
+    btnZoomIn.onclick = (e) => {
+      e.stopPropagation();
+      slideZoomScale = Math.min(3.5, slideZoomScale + 0.25);
+      updateSlideZoom();
+    };
+  }
+  if (btnZoomOut) {
+    btnZoomOut.onclick = (e) => {
+      e.stopPropagation();
+      slideZoomScale = Math.max(1, slideZoomScale - 0.25);
+      updateSlideZoom();
+    };
+  }
+  if (btnZoomReset) {
+    btnZoomReset.onclick = (e) => {
+      e.stopPropagation();
+      slideZoomScale = 1;
+      updateSlideZoom();
+    };
+  }
+
+  // Nhấp đúp (Double-tap) trên slide để phóng to 200% hoặc trở về chuẩn
+  if (slideViewport) {
+    let lastTap = 0;
+    slideViewport.addEventListener('click', (e) => {
+      // Bỏ qua nếu bấm vào nút zoom hoặc waiting-card
+      if (e.target.closest('.slide-zoom-controls') || e.target.closest('.waiting-card')) return;
+      const now = Date.now();
+      if (now - lastTap < 350) {
+        slideZoomScale = slideZoomScale === 1 ? 2.0 : 1;
+        updateSlideZoom();
+      }
+      lastTap = now;
+    });
+  }
 
   // --- Tiện ích Toast thông báo đã chuyển lên trên ---
 });

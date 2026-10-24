@@ -1449,3 +1449,187 @@ body.mini-remote-mode .ppt-helper-box {
   75% { opacity: 1; transform: translateY(-70px) scale(1); }
   100% { opacity: 0; transform: translateY(-110px) scale(0.9); }
 }
+
+/* ==========================================
+   GIAO DIỆN CHIA 2 CỘT (SPLIT-VIEW) CHO HỌC SINH
+   ========================================== */
+.viewer-layout-split {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  position: relative;
+  height: calc(100vh - 52px);
+  width: 100%;
+}
+
+/* CỘT TRÁI (LỚN): KHUNG SLIDE PHÓNG TO HẾT CỠ */
+.viewer-layout-split .slide-viewport {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #030712;
+  touch-action: none;
+  padding: 10px;
+}
+
+.viewer-layout-split .slide-viewport .slide-image {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: center center;
+}
+
+/* Nút Zoom nổi trên Slide */
+.slide-zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  gap: 6px;
+  z-index: 35;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 4px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-zoom {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-zoom:hover {
+  background: #6366f1;
+}
+
+/* CỘT PHẢI: KHU VỰC TƯƠNG TÁC HỌC SINH */
+.interaction-sidebar {
+  width: 360px;
+  min-width: 320px;
+  max-width: 420px;
+  background: rgba(15, 23, 42, 0.98);
+  border-left: 1.5px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  z-index: 40;
+}
+
+/* Thanh hành động nhanh trong sidebar: Giơ tay, Phản hồi, Tải slide */
+.sidebar-action-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(30, 41, 59, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-action-btn {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  border-radius: 10px;
+  padding: 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-action-btn:hover {
+  background: #334155;
+  transform: translateY(-1px);
+}
+
+.sidebar-action-btn.active {
+  background: #f59e0b;
+  color: #fff;
+  border-color: #f59e0b;
+}
+
+/* Hộp chờ tương tác khi chưa có câu hỏi */
+.quiz-idle-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 20px;
+}
+
+/* Hộp câu hỏi tương tác hiển thị lọt lòng bên trong cột phải */
+.interaction-sidebar .quiz-overlay {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  width: 100%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 14px;
+  flex: 1;
+  overflow-y: auto;
+  border-radius: 0;
+}
+
+/* Thanh trạng thái bên dưới sidebar */
+.sidebar-footer-status {
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.98);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* RESPONSIVE: MÀN HÌNH ĐIỆN THOẠI DỌC (< 768px) */
+@media (max-width: 768px) and (orientation: portrait) {
+  .viewer-layout-split {
+    flex-direction: column;
+  }
+  .viewer-layout-split .slide-viewport {
+    height: 52vh;
+    flex: none;
+  }
+  .interaction-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    height: calc(48vh - 52px);
+    border-left: none;
+    border-top: 1.5px solid rgba(255, 255, 255, 0.1);
+  }
+}
