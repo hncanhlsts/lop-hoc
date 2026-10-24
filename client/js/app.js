@@ -154,6 +154,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Điều khiển Phóng to / Thu nhỏ ---
+  const btnRetryConn = document.getElementById('btn-retry-conn');
+  if (btnRetryConn) {
+    btnRetryConn.addEventListener('click', () => {
+      showToast('🔄 Đang thử lại kết nối...');
+      connection.retry();
+    });
+  }
+
   btnZoomIn.addEventListener('click', () => viewer.zoomIn());
   btnZoomOut.addEventListener('click', () => viewer.zoomOut());
   btnZoomReset.addEventListener('click', () => viewer.resetZoom());

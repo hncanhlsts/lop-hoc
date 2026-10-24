@@ -1,9 +1,13 @@
 /**
- * CONNECTION.JS - Kết nối thời gian thực siêu tốc qua MQTT WebSocket (EMQX Cloud)
- * Hoàn toàn miễn phí, độ trễ < 50ms, không phụ thuộc vào NAT hay STUN/TURN, chạy mượt trên mọi mạng 4G/Wi-Fi!
+ * CONNECTION.JS - Bộ kết nối ổn định cao qua MQTT WebSocket
+ * Tự động chuyển đổi giữa các Cloud Broker uy tín (HiveMQ / EMQX)
+ * Tiết kiệm băng thông, không bị nghẽn mạng hay khóa kết nối.
  */
 
-const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+const BROKERS = [
+  'wss://broker.hivemq.com:8884/mqtt',
+  'wss://broker.emqx.io:8084/mqtt'
+];
 
 class SlideConnection {
   constructor(options = {}) {
@@ -13,7 +17,8 @@ class SlideConnection {
     this.studentName = 'Học sinh';
     this.studentId = 'hs_' + Math.random().toString(36).substring(2, 9);
     this.roomCode = '';
-    this.pingInterval = null;
+    this.brokerIndex = 0;
+    this.pingTimer = null;
 
     // Callbacks
     this.onStatusChange = options.onStatusChange || (() => {});
@@ -35,27 +40,34 @@ class SlideConnection {
       return;
     }
 
+    this.connectToBroker(0);
+  }
+
+  connectToBroker(index) {
+    this.brokerIndex = index % BROKERS.length;
+    const currentBroker = BROKERS[this.brokerIndex];
+
     this.onStatusChange('connecting', `Đang kết nối tới lớp [${this.roomCode.toUpperCase()}]...`);
 
     try {
       if (this.client) {
         this.client.end(true);
+        this.client = null;
       }
 
-      const clientId = `classlive_std_${this.studentId}_${Date.now()}`;
-      this.client = mqtt.connect(MQTT_BROKER, {
+      const clientId = `std_${this.studentId}_${Math.floor(Math.random() * 10000)}`;
+      this.client = mqtt.connect(currentBroker, {
         clientId: clientId,
         clean: true,
-        connectTimeout: 8000,
-        reconnectPeriod: 2500
+        connectTimeout: 7000,
+        reconnectPeriod: 3000
       });
 
       this.client.on('connect', () => {
         this.isConnected = true;
-        this.onStatusChange('connected', `🟢 Đã vào lớp [${this.roomCode.toUpperCase()}] • Đang đồng bộ`);
-        console.log('[Học sinh] Đã kết nối thành công tới MQTT Broker!');
+        this.onStatusChange('connected', `🟢 Đã vào lớp [${this.roomCode.toUpperCase()}] • Chờ Thầy/Cô phát bài`);
+        console.log('[Học sinh] Đã kết nối Broker:', currentBroker);
 
-        // Đăng ký các kênh nhận dữ liệu của phòng này
         const baseTopic = `classlive/hncanhlsts/${this.roomCode}`;
         this.client.subscribe([
           `${baseTopic}/slide`,
@@ -64,41 +76,45 @@ class SlideConnection {
           `${baseTopic}/star/${this.studentId}`
         ], { qos: 0 });
 
-        // Gửi thông tin điểm danh tới giáo viên
+        // Gửi thông tin điểm danh & yêu cầu lấy slide hiện tại
         this.sendPresence();
+        this.requestCurrentSlide();
 
-        // Gửi nhịp tim định kỳ mỗi 8s để duy trì trạng thái có mặt
-        if (this.pingInterval) clearInterval(this.pingInterval);
-        this.pingInterval = setInterval(() => this.sendPresence(), 8000);
+        if (this.pingTimer) clearInterval(this.pingTimer);
+        this.pingTimer = setInterval(() => this.sendPresence(), 10000);
       });
 
       this.client.on('message', (topic, message) => {
         try {
           const payload = JSON.parse(message.toString());
-          this.handleMessage(topic, payload);
+          this.handleIncoming(topic, payload);
         } catch (e) {
-          console.error('Lỗi phân tích gói tin:', e);
+          console.error('Lỗi đọc dữ liệu:', e);
         }
       });
 
       this.client.on('offline', () => {
         this.isConnected = false;
-        this.onStatusChange('disconnected', 'Mất kết nối mạng. Đang tự động kết nối lại...');
+        this.onStatusChange('disconnected', 'Mạng đang chậm. Đang kết nối lại...');
       });
 
       this.client.on('error', (err) => {
-        console.warn('Lỗi MQTT:', err);
+        console.warn('Lỗi kết nối Broker:', err);
+        // Thử chuyển sang broker dự phòng sau 3 giây
+        setTimeout(() => {
+          if (!this.isConnected && !this.isDemoMode) {
+            this.connectToBroker(this.brokerIndex + 1);
+          }
+        }, 3000);
       });
 
     } catch (e) {
-      console.error('Không thể khởi tạo MQTT client:', e);
+      console.error('Lỗi khởi tạo MQTT:', e);
       this.onStatusChange('error', 'Lỗi mạng.');
     }
   }
 
-  handleMessage(topic, data) {
-    const subTopic = topic.split('/').pop();
-
+  handleIncoming(topic, data) {
     if (topic.endsWith('/slide')) {
       if (data.imageUrl) {
         this.onSlideUpdate({
@@ -131,6 +147,15 @@ class SlideConnection {
     }), { qos: 0 });
   }
 
+  requestCurrentSlide() {
+    if (!this.client || !this.isConnected) return;
+    const topic = `classlive/hncanhlsts/${this.roomCode}/request_slide`;
+    this.client.publish(topic, JSON.stringify({
+      from: this.studentId,
+      time: Date.now()
+    }), { qos: 0 });
+  }
+
   sendRaiseHand(isRaised) {
     this.sendPresence(isRaised);
   }
@@ -144,6 +169,10 @@ class SlideConnection {
       answer: answer,
       time: Date.now()
     }), { qos: 0 });
+  }
+
+  retry() {
+    this.connectToBroker(this.brokerIndex + 1);
   }
 
   initDemoMode() {
@@ -177,24 +206,24 @@ class SlideConnection {
 
   createDemoSlide(index, total, title, content, bgColor, accentColor) {
     const canvas = document.createElement('canvas');
-    canvas.width = 1280;
-    canvas.height = 720;
+    canvas.width = 1024;
+    canvas.height = 576;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, 1280, 720);
+    ctx.fillRect(0, 0, 1024, 576);
     ctx.fillStyle = accentColor;
-    ctx.fillRect(60, 60, 8, 50);
+    ctx.fillRect(50, 50, 6, 40);
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 36px -apple-system, sans-serif';
-    ctx.fillText(title, 85, 98);
+    ctx.font = 'bold 30px -apple-system, sans-serif';
+    ctx.fillText(title, 70, 80);
     ctx.fillStyle = '#e2e8f0';
-    ctx.font = '26px monospace, sans-serif';
+    ctx.font = '22px monospace, sans-serif';
     const lines = content.split('\n');
-    let y = 190;
+    let y = 150;
     for (const line of lines) {
-      ctx.fillText(line, 80, y);
-      y += 42;
+      ctx.fillText(line, 60, y);
+      y += 36;
     }
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL('image/jpeg', 0.7);
   }
 }

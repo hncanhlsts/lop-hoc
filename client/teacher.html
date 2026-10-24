@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=3.1"></script>
+  <script src="js/mqtt.min.js?v=3.2"></script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -510,7 +510,11 @@
   </div>
 
   <script>
-    const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+    const BROKERS = [
+      'wss://broker.hivemq.com:8884/mqtt',
+      'wss://broker.emqx.io:8084/mqtt'
+    ];
+    let brokerIndex = 0;
     let classCode = localStorage.getItem('classlive_teacher_room') || '1234';
 
     function getCleanCode(code) {
@@ -643,25 +647,27 @@
       statusDot.classList.remove('active');
       statusText.textContent = 'Đang kết nối Cloud...';
 
+      const currentBroker = BROKERS[brokerIndex % BROKERS.length];
       const cleanCode = getCleanCode(classCode);
-      const teacherClientId = `classlive_tch_${cleanCode}_${Date.now()}`;
+      const teacherClientId = `tch_${cleanCode}_${Math.floor(Math.random() * 10000)}`;
 
-      mqttClient = mqtt.connect(MQTT_BROKER, {
+      mqttClient = mqtt.connect(currentBroker, {
         clientId: teacherClientId,
         clean: true,
-        connectTimeout: 8000,
-        reconnectPeriod: 2500
+        connectTimeout: 7000,
+        reconnectPeriod: 3000
       });
 
       mqttClient.on('connect', () => {
         statusDot.classList.add('active');
         statusText.textContent = `🟢 Đã sẵn sàng (Mã: ${classCode})`;
-        console.log('[GV] Đã kết nối MQTT Broker thành công!');
+        console.log('[GV] Đã kết nối Broker thành công:', currentBroker);
 
         // Lắng nghe tín hiệu từ học sinh của phòng này
         const studentTopic = `classlive/hncanhlsts/${cleanCode}/student/+`;
         const answerTopic = `classlive/hncanhlsts/${cleanCode}/answer/+`;
-        mqttClient.subscribe([studentTopic, answerTopic], { qos: 0 });
+        const requestTopic = `classlive/hncanhlsts/${cleanCode}/request_slide`;
+        mqttClient.subscribe([studentTopic, answerTopic, requestTopic], { qos: 0 });
       });
 
       mqttClient.on('message', (topic, message) => {
@@ -693,10 +699,27 @@
             }
             updateStatsUI();
             updateStudentUI();
+
+          } else if (topic.includes(`/request_slide`)) {
+            // Học sinh mới vào yêu cầu lấy slide hiện tại
+            if (lastSentImage && mqttClient && mqttClient.connected) {
+              mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
+                imageUrl: lastSentImage,
+                timestamp: Date.now()
+              }), { qos: 0 });
+            }
           }
         } catch (e) {
           console.error('Lỗi nhận message:', e);
         }
+      });
+
+      mqttClient.on('error', () => {
+        // Thử chuyển sang broker dự phòng
+        brokerIndex++;
+        setTimeout(() => {
+          if (!mqttClient || !mqttClient.connected) initMqtt();
+        }, 3000);
       });
 
       mqttClient.on('offline', () => {
@@ -897,30 +920,62 @@
       statusText.textContent = `Đã dừng phát sóng (Mã: ${classCode})`;
     }
 
-    function captureFrame() {
-      if (!mediaStream || previewVideo.videoWidth === 0) return;
-      captureCanvas.width = 1280;
-      captureCanvas.height = 720;
-      ctx.drawImage(previewVideo, 0, 0, 1280, 720);
+    let lastThumbData = null;
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = 40;
+    thumbCanvas.height = 22;
+    const thumbCtx = thumbCanvas.getContext('2d');
+    let lastSentImage = null;
 
-      // Nén ảnh chất lượng 70% (~60KB) để phát siêu mượt
-      const base64Image = captureCanvas.toDataURL('image/jpeg', 0.70);
+    function hasSlideChanged() {
+      if (!previewVideo || previewVideo.videoWidth === 0) return false;
+      thumbCtx.drawImage(previewVideo, 0, 0, 40, 22);
+      const currentData = thumbCtx.getImageData(0, 0, 40, 22).data;
+      if (!lastThumbData) {
+        lastThumbData = currentData;
+        return true;
+      }
+      let diff = 0;
+      for (let i = 0; i < currentData.length; i += 4) {
+        diff += Math.abs(currentData[i] - lastThumbData[i]);
+        diff += Math.abs(currentData[i+1] - lastThumbData[i+1]);
+        diff += Math.abs(currentData[i+2] - lastThumbData[i+2]);
+      }
+      const avgDiff = diff / (40 * 22 * 3);
+      if (avgDiff > 7) {
+        lastThumbData = currentData;
+        return true;
+      }
+      return false;
+    }
+
+    function captureAndBroadcast(force = false) {
+      if (!mediaStream || previewVideo.videoWidth === 0) return;
+      if (!force && !hasSlideChanged()) return; // Slide chưa thay đổi, không phát trùng lặp!
+
+      captureCanvas.width = 1024;
+      captureCanvas.height = 576;
+      ctx.drawImage(previewVideo, 0, 0, 1024, 576);
+
+      // Nén ảnh chất lượng 65% (~22KB) - cực nhẹ và không bao giờ bị nghẽn mạng!
+      const base64Image = captureCanvas.toDataURL('image/jpeg', 0.65);
+      lastSentImage = base64Image;
       const cleanCode = getCleanCode(classCode);
 
-      // Publish với RETAIN = TRUE để học sinh mới vào là thấy slide ngay tức khắc!
       if (mqttClient && mqttClient.connected) {
         mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
-          slideNumber: 1,
-          totalSlides: 1,
-          imageUrl: base64Image
+          imageUrl: base64Image,
+          timestamp: Date.now()
         }), { qos: 0, retain: true });
+        console.log('[GV] Đã gửi slide (~' + Math.round(base64Image.length / 1024) + ' KB)');
       }
     }
 
     function startFrameCapture() {
       if (captureInterval) clearInterval(captureInterval);
-      setTimeout(captureFrame, 400);
-      captureInterval = setInterval(captureFrame, 1000);
+      lastThumbData = null;
+      setTimeout(() => captureAndBroadcast(true), 500);
+      captureInterval = setInterval(() => captureAndBroadcast(false), 1000);
     }
 
     function updateStudentUI() {

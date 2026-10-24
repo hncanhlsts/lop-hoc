@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Lớp Học Trực Tuyến - Xem Slide Bài Giảng</title>
-  <link rel="stylesheet" href="css/style.css?v=3.1">
-  <script src="js/mqtt.min.js?v=3.1"></script>
+  <link rel="stylesheet" href="css/style.css?v=3.2">
+  <script src="js/mqtt.min.js?v=3.2"></script>
 </head>
 <body>
 
@@ -105,7 +105,8 @@
       <div id="waiting-card" class="waiting-card">
         <div class="waiting-spinner"></div>
         <h3 id="waiting-title">Đang kết nối tới lớp học...</h3>
-        <p id="waiting-desc">Vui lòng đợi Thầy/Cô bấm nút <b>"Bật trình chiếu"</b> trên máy tính.</p>
+        <p id="waiting-desc">Vui lòng đợi Thầy/Cô bấm nút <b>"Bắt đầu trình chiếu"</b> trên máy tính.</p>
+        <button id="btn-retry-conn" class="btn-secondary" style="margin-top: 14px; font-size: 13px; padding: 8px 16px;">🔄 Thử lại kết nối</button>
       </div>
 
       <div class="slide-canvas-wrapper" id="slide-canvas-wrapper">
@@ -170,9 +171,9 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <!-- Scripts (Cache-busting version 3.1) -->
-  <script src="js/viewer.js?v=3.1"></script>
-  <script src="js/connection.js?v=3.1"></script>
-  <script src="js/app.js?v=3.1"></script>
+  <!-- Scripts (Cache-busting version 3.2) -->
+  <script src="js/viewer.js?v=3.2"></script>
+  <script src="js/connection.js?v=3.2"></script>
+  <script src="js/app.js?v=3.2"></script>
 </body>
 </html>
