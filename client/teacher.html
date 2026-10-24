@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=4.3"></script>
+  <script src="js/mqtt.min.js?v=4.4"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     :root {
@@ -731,6 +731,52 @@
       link.click();
       document.body.removeChild(link);
       alert('📥 Đã tải xuống file Báo Cáo Tiết Học (Excel/CSV) thành công!');
+    }
+
+    
+    // --- MỞ THANH ĐIỀU KHIỂN NỔI (FLOATING MINI REMOTE) ---
+    const btnOpenFloatingRemote = document.getElementById('btn-open-floating-remote');
+    const btnOpenMobileRemote = document.getElementById('btn-open-mobile-remote');
+    const remoteQrModal = document.getElementById('remote-qr-modal');
+    const btnCloseRemoteQr = document.getElementById('btn-close-remote-qr');
+    const remoteQrImg = document.getElementById('remote-qr-img');
+    const remoteUrlText = document.getElementById('remote-url-text');
+
+    if (btnOpenFloatingRemote) {
+      btnOpenFloatingRemote.addEventListener('click', () => {
+        const cleanCode = getCleanCode(classCode);
+        const remoteUrl = window.location.href.split('?')[0] + `?remote=mini&code=${cleanCode}`;
+        window.open(remoteUrl, 'ClassLiveMiniRemote', 'width=420,height=680,top=80,left=80');
+      });
+    }
+
+    if (btnOpenMobileRemote && remoteQrModal) {
+      btnOpenMobileRemote.addEventListener('click', () => {
+        const cleanCode = getCleanCode(classCode);
+        const remoteUrl = window.location.href.split('?')[0] + `?remote=mini&code=${cleanCode}`;
+        remoteUrlText.textContent = remoteUrl;
+        remoteQrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(remoteUrl)}`;
+        remoteQrModal.style.display = 'flex';
+      });
+    }
+
+    if (btnCloseRemoteQr && remoteQrModal) {
+      btnCloseRemoteQr.addEventListener('click', () => {
+        remoteQrModal.style.display = 'none';
+      });
+    }
+
+    // --- NẾU ĐANG Ở CHẾ ĐỘ MINI REMOTE: TỐI ƯU GIAO DIỆN NHỎ GỌN ---
+    const urlParamsRemote = new URLSearchParams(window.location.search);
+    if (urlParamsRemote.get('remote') === 'mini') {
+      document.body.classList.add('mini-remote-mode');
+      const previewPanel = document.getElementById('preview-box');
+      if (previewPanel) previewPanel.style.display = 'none';
+      const rightPanel = document.querySelectorAll('.panel')[1];
+      if (rightPanel) rightPanel.style.display = 'none';
+      const headerCode = document.querySelector('header');
+      if (headerCode) headerCode.style.padding = '8px 12px';
+      document.title = '🎮 Remote Điều Khiển Lớp Học';
     }
 
     initMqtt();
@@ -1512,6 +1558,23 @@
       </div>
       <div class="leaderboard-podium" id="leaderboard-podium"></div>
       <ul class="leaderboard-list" id="leaderboard-list"></ul>
+    </div>
+  </div>
+
+
+  <!-- Modal Quét QR Điều Khiển Bằng Điện Thoại Của Giáo Viên -->
+  <div id="remote-qr-modal" class="modal-overlay" style="display: none;">
+    <div style="background: #1e293b; border: 2px solid #8b5cf6; border-radius: 16px; padding: 20px; max-width: 400px; text-align: center; color: #fff;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span style="font-weight: 800; font-size: 16px; color: #c4b5fd;">📱 ĐIỀU KHIỂN BẰNG ĐIỆN THOẠI</span>
+        <button id="btn-close-remote-qr" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 14px;">
+        Dùng điện thoại của Thầy/Cô quét mã này để biến điện thoại thành <b>Remote điều khiển từ xa</b> (vừa đi quanh lớp vừa bấm phát câu hỏi):
+      </p>
+      <img id="remote-qr-img" style="width: 200px; height: 200px; border-radius: 10px; border: 3px solid #8b5cf6; margin: 0 auto 12px; display: block;" src="" />
+      <div id="remote-url-text" style="font-size: 12px; color: #a5b4fc; word-break: break-all; margin-bottom: 12px;"></div>
+      <button onclick="window.open(document.getElementById('remote-url-text').textContent, '_blank')" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;">Mở thử trên tab mới</button>
     </div>
   </div>
 
