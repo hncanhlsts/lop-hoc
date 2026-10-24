@@ -1,16 +1,21 @@
 /**
- * CONNECTION.JS - Kết nối thời gian thực WebRTC P2P (PeerJS)
- * Học sinh truy cập trang web là nhận ngay hình ảnh Slide khi giáo viên bấm BẬT!
+ * CONNECTION.JS - Kết nối WebRTC P2P đa phòng (Multi-room)
+ * Mỗi giáo viên có mã phòng riêng biệt, không ai trùng ai, dạy song song cùng lúc!
  */
+
+function getRoomPeerId(code) {
+  return `hncanhlsts-room-${code.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+}
 
 class SlideConnection {
   constructor(options = {}) {
-    this.teacherPeerId = 'hncanhlsts-class-live'; // ID phòng phát sóng của giáo viên
+    this.teacherPeerId = '';
     this.peer = null;
     this.conn = null;
     this.isConnected = false;
     this.isDemoMode = false;
     this.studentName = 'Học sinh';
+    this.roomCode = '';
 
     // Callbacks
     this.onStatusChange = options.onStatusChange || (() => {});
@@ -21,32 +26,38 @@ class SlideConnection {
 
   connect(roomCode, studentName, isDemo = false) {
     this.studentName = studentName || 'Học sinh';
+    this.roomCode = (roomCode || '').trim();
     this.isDemoMode = isDemo;
-
-    const cleanCode = (roomCode || '8899').trim().toLowerCase();
-    this.teacherPeerId = `hncanhlsts-class-${cleanCode}`;
 
     if (this.isDemoMode) {
       this.initDemoMode();
       return;
     }
 
-    this.onStatusChange('connecting', `Đang kết nối tới Lớp ${cleanCode.toUpperCase()} của Giáo viên...`);
+    if (!this.roomCode) {
+      this.onStatusChange('error', '⚠️ Vui lòng nhập Mã lớp học của Thầy/Cô');
+      return;
+    }
+
+    this.teacherPeerId = getRoomPeerId(this.roomCode);
+    this.onStatusChange('connecting', `Đang tìm lớp [${this.roomCode.toUpperCase()}] của Thầy/Cô...`);
 
     try {
-      // Khởi tạo Peer WebRTC cho học sinh
+      if (this.peer) {
+        this.peer.destroy();
+      }
+
       this.peer = new Peer({ debug: 1 });
 
       this.peer.on('open', (id) => {
-        console.log('Học sinh đã khởi tạo Peer ID:', id);
+        console.log('Học sinh kết nối với ID:', id);
         this.connectToTeacher();
       });
 
       this.peer.on('error', (err) => {
         console.warn('Lỗi kết nối P2P:', err);
         if (err.type === 'peer-unavailable') {
-          this.onStatusChange('waiting', '⏳ Thầy/Cô chưa bấm "Bật trình chiếu". Hãy chờ một chút nhé!');
-          // Thử kết nối lại sau 4 giây
+          this.onStatusChange('waiting', `⏳ Lớp [${this.roomCode.toUpperCase()}]: Thầy/Cô chưa bấm "Bật trình chiếu". Hãy đợi thầy cô nhé!`);
           setTimeout(() => this.connectToTeacher(), 4000);
         } else {
           this.onStatusChange('error', 'Đang thử kết nối lại...');
@@ -55,24 +66,20 @@ class SlideConnection {
       });
 
     } catch (e) {
-      console.error('Không thể tải PeerJS:', e);
-      this.onStatusChange('error', 'Lỗi kết nối. Chuyển sang Demo.');
-      this.initDemoMode();
+      console.error('Không thể tạo Peer:', e);
+      this.onStatusChange('error', 'Lỗi kết nối mạng.');
     }
   }
 
   connectToTeacher() {
-    if (!this.peer || this.peer.destroyed) return;
+    if (!this.peer || this.peer.destroyed || !this.teacherPeerId) return;
 
-    console.log('Đang kết nối tới phòng phát sóng:', this.teacherPeerId);
     this.conn = this.peer.connect(this.teacherPeerId, { reliable: true });
 
     this.conn.on('open', () => {
       this.isConnected = true;
-      this.onStatusChange('connected', '🟢 Đang xem trực tiếp từ Thầy/Cô');
-      console.log('Đã kết nối thành công tới máy Giáo viên!');
+      this.onStatusChange('connected', `🟢 Đang xem trực tiếp • Lớp: ${this.roomCode.toUpperCase()}`);
 
-      // Gửi thông tin định danh của học sinh
       this.conn.send({
         type: 'JOIN',
         name: this.studentName
@@ -95,18 +102,16 @@ class SlideConnection {
 
     this.conn.on('close', () => {
       this.isConnected = false;
-      this.onStatusChange('disconnected', '⏳ Thầy/Cô đã tạm dừng hoặc chuyển bài giảng.');
-      // Tự động kết nối lại
-      setTimeout(() => this.connectToTeacher(), 3000);
+      this.onStatusChange('disconnected', `⏳ Thầy/Cô lớp [${this.roomCode.toUpperCase()}] đã tạm dừng.`);
+      setTimeout(() => this.connectToTeacher(), 3500);
     });
 
     this.conn.on('error', () => {
       this.isConnected = false;
-      setTimeout(() => this.connectToTeacher(), 3000);
+      setTimeout(() => this.connectToTeacher(), 3500);
     });
   }
 
-  // Gửi hành động giơ tay
   sendRaiseHand(isRaised) {
     if (this.conn && this.conn.open) {
       this.conn.send({
@@ -117,7 +122,6 @@ class SlideConnection {
     }
   }
 
-  // Nộp câu trả lời trắc nghiệm
   submitQuizAnswer(quizId, answer) {
     if (this.conn && this.conn.open) {
       this.conn.send({
@@ -129,7 +133,6 @@ class SlideConnection {
     }
   }
 
-  // --- DEMO MODE CHO THỬ NGHIỆM TỨC THÌ ---
   initDemoMode() {
     this.isDemoMode = true;
     this.onStatusChange('connected', 'Chế độ Trải nghiệm mẫu (Demo)');

@@ -45,7 +45,7 @@
       font-weight: 700;
     }
     
-    /* MÃ LỚP HỌC TRÊN HEADER - CỰC KỲ NỔI BẬT */
+    /* MÃ LỚP HỌC TRÊN HEADER - TỰ ĐỘNG SINH RIÊNG BIỆT CHO MỖI GIÁO VIÊN */
     .class-code-badge {
       display: flex;
       align-items: center;
@@ -69,18 +69,19 @@
       color: #fbbf24;
       letter-spacing: 3px;
     }
-    .btn-change-code {
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
+    .btn-action-small {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       color: #e0e7ff;
-      padding: 4px 8px;
+      padding: 5px 10px;
       border-radius: 6px;
-      font-size: 11px;
+      font-size: 12px;
       cursor: pointer;
       font-weight: 600;
+      transition: all 0.2s;
     }
-    .btn-change-code:hover {
-      background: rgba(255, 255, 255, 0.2);
+    .btn-action-small:hover {
+      background: rgba(255, 255, 255, 0.25);
     }
 
     .status-badge {
@@ -210,12 +211,12 @@
     .big-code-display {
       background: #1e1b4b;
       border: 1.5px solid #6366f1;
-      padding: 8px;
+      padding: 10px;
       border-radius: 8px;
       margin-bottom: 12px;
     }
     .big-code-number {
-      font-size: 32px;
+      font-size: 36px;
       font-weight: 900;
       letter-spacing: 4px;
       color: #fbbf24;
@@ -268,11 +269,12 @@
       <span>🖥️ BẢNG ĐIỀU KHIỂN TRÌNH CHIẾU GIÁO VIÊN</span>
     </div>
 
-    <!-- MÃ LỚP HỌC CHO GIÁO VIÊN ĐỌC CHO HỌC SINH -->
+    <!-- MÃ LỚP HỌC RIÊNG BIỆT DÀNH CHO GIÁO VIÊN -->
     <div class="class-code-badge">
-      <span class="class-code-label">🔑 Mã Lớp Học:</span>
-      <span id="header-class-code" class="class-code-value">8899</span>
-      <button id="btn-edit-code" class="btn-change-code" title="Đổi mã lớp">✏️ Đổi mã</button>
+      <span class="class-code-label">🔑 Mã Lớp Học Của Bạn:</span>
+      <span id="header-class-code" class="class-code-value">----</span>
+      <button id="btn-random-code" class="btn-action-small" title="Tạo mã số ngẫu nhiên mới">🎲 Đổi mã khác</button>
+      <button id="btn-custom-code" class="btn-action-small" title="Tự đặt mã theo tên lớp, ví dụ 12A1">✏️ Tự đặt tên</button>
     </div>
 
     <div class="status-badge">
@@ -297,9 +299,9 @@
         <div id="placeholder" class="placeholder-text">
           <p style="font-size: 44px; margin-bottom: 12px;">📽️</p>
           <p style="font-size: 18px; color: #fff; margin-bottom: 8px;"><b>Cách dùng cực kỳ đơn giản:</b></p>
-          <p>1. Bảo học sinh vào web hoặc quét mã QR bên phải (Mã lớp: <b id="guide-code" style="color: #fbbf24;">8899</b>).</p>
-          <p>2. Bạn bấm nút màu xanh <b>"BẬT TRÌNH CHIẾU CHO HỌC SINH"</b> bên trên.</p>
-          <p>3. Chọn <b>Cửa sổ PowerPoint</b> bài giảng của bạn $\rightarrow$ Hình ảnh slide sẽ hiện ngay trên điện thoại/máy tính của học sinh!</p>
+          <p>1. Đọc mã lớp: <b id="guide-code" style="color: #fbbf24;">----</b> cho học sinh (hoặc bảo học sinh quét mã QR bên phải).</p>
+          <p>2. Bấm nút màu xanh <b>"BẬT TRÌNH CHIẾU CHO HỌC SINH"</b> bên trên $\rightarrow$ chọn cửa sổ PowerPoint.</p>
+          <p>3. Chỉ những học sinh nhập đúng mã lớp của bạn mới xem được bài giảng của bạn!</p>
         </div>
         <video id="preview-video" autoplay playsinline muted style="display: none;"></video>
         <canvas id="capture-canvas" style="display: none;"></canvas>
@@ -313,24 +315,24 @@
       </div>
 
       <div class="link-card">
-        <div class="link-label">ĐỌC MÃ NÀY CHO HỌC SINH:</div>
+        <div class="link-label">ĐỌC MÃ NÀY CHO HỌC SINH CỦA BẠN:</div>
         <div class="big-code-display">
-          <div id="sidebar-class-code" class="big-code-number">8899</div>
+          <div id="sidebar-class-code" class="big-code-number">----</div>
         </div>
 
-        <div class="link-label">HOẶC QUÉT MÃ QR NÀY ĐỂ VÀO THẲNG:</div>
+        <div class="link-label">HOẶC HỌC SINH QUÉT MÃ QR NÀY ĐỂ VÀO NGAY:</div>
         <img id="qr-code" class="qr-img" src="" alt="Mã QR" />
         <div id="student-url" class="link-box" style="margin-top: 10px;">Đang tạo link...</div>
       </div>
 
       <div class="panel-title" style="margin-top: 10px;">
-        <span>👥 Học sinh đang xem (<span id="student-count">0</span>)</span>
+        <span>👥 Học sinh trong lớp bạn (<span id="student-count">0</span>)</span>
       </div>
 
       <div class="student-list-container">
         <ul id="student-list" style="list-style: none;">
           <li style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">
-            Chưa có học sinh nào kết nối.<br>Học sinh nhập mã hoặc quét QR sẽ hiện tên tại đây.
+            Chưa có học sinh nào kết nối.<br>Học sinh nhập mã của bạn sẽ hiện tên tại đây.
           </li>
         </ul>
       </div>
@@ -338,11 +340,20 @@
   </div>
 
   <script>
-    // Quản lý Mã Lớp Học (Mặc định 8899 hoặc lấy từ bộ nhớ)
-    let classCode = localStorage.getItem('classlive_teacher_code') || '8899';
+    // Hàm sinh mã 4 chữ số ngẫu nhiên duy nhất cho mỗi GV (VD: 5182, 7391)
+    function generateUniqueCode() {
+      return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+
+    // Mỗi tab/phiên dạy của GV sẽ tự có mã ngẫu nhiên riêng biệt, không ai trùng ai
+    let classCode = sessionStorage.getItem('classlive_teacher_room');
+    if (!classCode) {
+      classCode = generateUniqueCode();
+      sessionStorage.setItem('classlive_teacher_room', classCode);
+    }
 
     function getRoomPeerId(code) {
-      return `hncanhlsts-class-${code.toLowerCase()}`;
+      return `hncanhlsts-room-${code.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
     }
 
     function updateCodeUI() {
@@ -355,24 +366,29 @@
       document.getElementById('qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(studentUrl)}`;
     }
 
-    document.getElementById('btn-edit-code').addEventListener('click', () => {
-      const newCode = prompt('Nhập Mã Lớp Học mới (4 đến 6 chữ số):', classCode);
-      if (newCode && newCode.trim()) {
-        classCode = newCode.trim().toUpperCase();
-        localStorage.setItem('classlive_teacher_code', classCode);
+    // Đổi sang mã ngẫu nhiên khác
+    document.getElementById('btn-random-code').addEventListener('click', () => {
+      classCode = generateUniqueCode();
+      sessionStorage.setItem('classlive_teacher_room', classCode);
+      updateCodeUI();
+      reconnectPeer();
+    });
+
+    // Tự đặt mã theo tên lớp (ví dụ 12A1, TOAN9)
+    document.getElementById('btn-custom-code').addEventListener('click', () => {
+      const custom = prompt('Nhập mã lớp bạn muốn (Ví dụ: 12A1, TOAN9, 6868):', classCode);
+      if (custom && custom.trim()) {
+        classCode = custom.trim().toUpperCase();
+        sessionStorage.setItem('classlive_teacher_room', classCode);
         updateCodeUI();
-        // Khởi tạo lại Peer với mã phòng mới
-        if (peer) {
-          peer.destroy();
-          initPeer();
-        }
+        reconnectPeer();
       }
     });
 
     updateCodeUI();
 
     let peer = null;
-    let connections = new Map(); // peerId -> { conn, name, isHandRaised }
+    let connections = new Map();
     let mediaStream = null;
     let captureInterval = null;
 
@@ -388,13 +404,23 @@
     const captureCanvas = document.getElementById('capture-canvas');
     const ctx = captureCanvas.getContext('2d');
 
-    // Khởi tạo kết nối P2P
+    function reconnectPeer() {
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+      connections.clear();
+      updateStudentUI();
+      initPeer();
+    }
+
+    // Khởi tạo Peer WebRTC độc lập cho phòng của giáo viên này
     function initPeer() {
       const roomPeerId = getRoomPeerId(classCode);
       peer = new Peer(roomPeerId, { debug: 1 });
 
       peer.on('open', (id) => {
-        console.log('[GV] Phòng trình chiếu đã mở với ID:', id);
+        console.log('[GV] Phòng của bạn đã sẵn sàng với ID:', id);
       });
 
       peer.on('connection', (conn) => {
@@ -432,11 +458,17 @@
       });
 
       peer.on('error', (err) => {
-        console.warn('Lỗi Peer:', err);
+        if (err.type === 'unavailable-id') {
+          // Mã này đã có giáo viên khác đang dùng, tự đổi sang mã mới
+          alert(`Mã lớp [${classCode}] đang có một thầy/cô khác sử dụng. Hệ thống sẽ tự cấp mã mới cho bạn!`);
+          classCode = generateUniqueCode();
+          sessionStorage.setItem('classlive_teacher_room', classCode);
+          updateCodeUI();
+          reconnectPeer();
+        }
       });
     }
 
-    // Bật Trình chiếu: Bắt màn hình PowerPoint
     btnStart.addEventListener('click', async () => {
       try {
         mediaStream = await navigator.mediaDevices.getDisplayMedia({
@@ -456,7 +488,7 @@
         btnStop.style.display = 'inline-flex';
 
         statusDot.classList.add('active');
-        statusText.textContent = '🟢 ĐANG PHÁT SÓNG TRỰC TIẾP';
+        statusText.textContent = `🟢 ĐANG PHÁT SÓNG (MÃ: ${classCode})`;
 
         mediaStream.getVideoTracks()[0].onended = () => {
           stopBroadcasting();
@@ -531,7 +563,7 @@
     function updateStudentUI() {
       studentCount.textContent = connections.size;
       if (connections.size === 0) {
-        studentList.innerHTML = `<li style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">Chưa có học sinh nào kết nối.<br>Học sinh nhập mã hoặc quét QR sẽ hiện tên tại đây.</li>`;
+        studentList.innerHTML = `<li style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0;">Chưa có học sinh nào kết nối.<br>Học sinh nhập mã của bạn sẽ hiện tên tại đây.</li>`;
         return;
       }
       let html = '';

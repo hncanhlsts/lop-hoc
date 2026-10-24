@@ -89,8 +89,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Xử lý Đăng nhập vào lớp ---
   joinForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const roomCode = classCodeInput.value.trim().toUpperCase() || '8899';
+    const roomCode = classCodeInput.value.trim().toUpperCase();
     const name = studentNameInput.value.trim() || 'Học sinh';
+
+    if (!roomCode) {
+      showToast('⚠️ Vui lòng nhập Mã lớp học của Thầy/Cô');
+      classCodeInput.focus();
+      return;
+    }
 
     localStorage.setItem('classpoint_student_name', name);
     enterClassroom(roomCode, name, false);
