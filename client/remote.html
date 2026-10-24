@@ -401,9 +401,9 @@
 
   <script>
     const BROKERS = [
-      'wss://broker.hivemq.com:8884/mqtt',
-      'wss://broker.emqx.io:8084/mqtt'
-    ];
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt'
+];
 
     const urlParams = new URLSearchParams(window.location.search);
     const classCode = (urlParams.get('code') || localStorage.getItem('classlive_teacher_room') || '1234').toUpperCase();

@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Lớp Học Trực Tuyến - Xem Slide Bài Giảng</title>
-  <link rel="stylesheet" href="css/style.css?v=4.5">
-  <script src="js/mqtt.min.js?v=4.5"></script>
+  <link rel="stylesheet" href="css/style.css?v=4.6">
+  <script src="js/mqtt.min.js?v=4.6"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
@@ -105,10 +105,11 @@
 
       <!-- Màn hình chờ khi chưa vào phòng -->
       <div id="waiting-card" class="waiting-card" style="display: none;">
-        <div class="waiting-spinner"></div>
-        <h3 id="waiting-title">Đang kết nối tới bài giảng...</h3>
-        <p id="waiting-desc">Vui lòng đợi Thầy/Cô bắt đầu phát sóng màn hình.</p>
-        <button id="btn-retry-conn" class="btn-secondary" style="margin-top: 14px; font-size: 13px; padding: 8px 16px;">🔄 Thử lại kết nối</button>
+        <div id="waiting-spinner" class="waiting-spinner"></div>
+        <div id="waiting-status-icon" style="display: none; font-size: 38px; margin-bottom: 12px; line-height: 1;">🟢</div>
+        <h3 id="waiting-title" style="margin-bottom: 8px;">Đang kết nối tới bài giảng...</h3>
+        <p id="waiting-desc" style="margin: 0; color: #94a3b8; font-size: 14px;">Vui lòng đợi Thầy/Cô bắt đầu phát sóng màn hình.</p>
+        <button id="btn-retry-conn" class="btn-secondary" style="margin-top: 14px; font-size: 13px; padding: 8px 16px; display: none;">🔄 Thử lại kết nối</button>
       </div>
     </main>
 
@@ -215,7 +216,7 @@
   <div id="toast" class="toast"></div>
 
   <!-- Scripts (Cache-busting version 3.5) -->
-  <script src="js/connection.js?v=4.5"></script>
-  <script src="js/app.js?v=4.5"></script>
+  <script src="js/connection.js?v=4.6"></script>
+  <script src="js/app.js?v=4.6"></script>
 </body>
 </html>

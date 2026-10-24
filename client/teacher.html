@@ -670,9 +670,9 @@
     var cpBtnToggle = null;
     var lastSentImage = null;
     const BROKERS = [
-      'wss://broker.hivemq.com:8884/mqtt',
-      'wss://broker.emqx.io:8084/mqtt'
-    ];
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt'
+];
     let brokerIndex = 0;
     const urlParamsInit = new URLSearchParams(window.location.search);
     let classCode = (urlParamsInit.get('code') || localStorage.getItem('classlive_teacher_room') || '1234').toUpperCase();
@@ -1702,14 +1702,28 @@
               updateStudentUI();
             }
 
-          } else if (topic.includes(`/request_slide`)) {
+          } else if (topic.includes('/request_slide')) {
             // Học sinh mới vào yêu cầu lấy slide hiện tại
             broadcastSessionMode(mediaStream ? 'smart' : (teacherJitsiApi ? 'live' : 'idle'), !!(mediaStream || teacherJitsiApi));
             if (lastSentImage && mqttClient && mqttClient.connected) {
               mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
                 imageUrl: lastSentImage,
+                slideNumber: currentSlideIndex || 1,
+                totalSlides: currentSlideIndex || 1,
                 timestamp: Date.now()
               }), { qos: 0 });
+            }
+            if (currentQuiz && currentQuiz.active) {
+              const quizPayload = {
+                action: 'start',
+                quizType: currentQuiz.type,
+                options: currentQuiz.options,
+                questionText: currentQuiz.questionText,
+                timeLimit: currentQuiz.timeLimit,
+                correctAnswer: currentQuiz.correctAnswer,
+                timestamp: Date.now()
+              };
+              mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify(quizPayload), { qos: 0 });
             }
           }
         } catch (e) {

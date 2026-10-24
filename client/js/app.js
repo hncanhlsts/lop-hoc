@@ -23,7 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const waitingCard = document.getElementById('waiting-card');
   const waitingTitle = document.getElementById('waiting-title');
   const waitingDesc = document.getElementById('waiting-desc');
-
+  const waitingSpinner = document.getElementById('waiting-spinner');
+  const waitingStatusIcon = document.getElementById('waiting-status-icon');
+  
   // Controls
   const btnFullscreen = document.getElementById('btn-fullscreen');
 
@@ -259,8 +261,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const connection = new SlideConnection({
     onStatusChange: (status, message) => {
       if (syncStatusText) syncStatusText.textContent = message;
-      if (waitingTitle && (status === 'connecting' || status === 'waiting' || status === 'disconnected' || status === 'error')) {
-        waitingTitle.textContent = message;
+
+      if (status === 'connected') {
+        if (waitingTitle) waitingTitle.textContent = `🟢 Đã vào phòng học [${(currentRoomCode || '1234').toUpperCase()}]`;
+        if (waitingDesc) waitingDesc.textContent = 'Kết nối mạng ổn định. Đang chờ Thầy/Cô phát Slide hoặc mở câu hỏi...';
+        if (waitingSpinner) waitingSpinner.style.display = 'none';
+        if (waitingStatusIcon) {
+          waitingStatusIcon.style.display = 'block';
+          waitingStatusIcon.textContent = '🟢';
+        }
+        if (btnRetryConn) btnRetryConn.style.display = 'none';
+      } else if (status === 'connecting') {
+        if (waitingTitle) waitingTitle.textContent = message || `Đang kết nối tới lớp [${(currentRoomCode || '1234').toUpperCase()}]...`;
+        if (waitingDesc) waitingDesc.textContent = 'Đang thiết lập kết nối an toàn tới phòng học...';
+        if (waitingSpinner) waitingSpinner.style.display = 'block';
+        if (waitingStatusIcon) waitingStatusIcon.style.display = 'none';
+        if (btnRetryConn) btnRetryConn.style.display = 'none';
+      } else if (status === 'disconnected' || status === 'error') {
+        if (waitingTitle) waitingTitle.textContent = `⚠️ ${message || 'Mất kết nối tới lớp học'}`;
+        if (waitingDesc) waitingDesc.textContent = 'Đang tự động kết nối lại, hoặc bấm nút bên dưới:';
+        if (waitingSpinner) waitingSpinner.style.display = 'none';
+        if (waitingStatusIcon) {
+          waitingStatusIcon.style.display = 'block';
+          waitingStatusIcon.textContent = '⚠️';
+        }
+        if (btnRetryConn) btnRetryConn.style.display = 'inline-block';
       }
     },
     onSessionModeChange: (sessionData) => {
