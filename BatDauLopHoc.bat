@@ -1,30 +1,20 @@
 @echo off
 chcp 65001 > nul
-title CLASSLIVE - HE THONG TRINH CHIEU KHONG MAN CHIEU
+title CLASSLIVE - BAT TRINH CHIEU
 
 echo ============================================================
-echo      DANG KHOI DONG HE THONG TRINH CHIEU CHO LOP HOC
-echo ============================================================
-echo.
-
-:: 1. Chay Node.js Server
-start "ClassLive Server" /min cmd /c "node server\server.js"
-
-:: Cho server khoi dong trong 2 giay
-timeout /t 2 /nobreak > nul
-
-:: 2. Tu dong mo Bang dieu khien Giao vien tren trinh duyet
-start http://localhost:3000/teacher
-
-echo [OK] May chu phat slide da san sang tai: http://localhost:3000/teacher
-echo [OK] Hay de hoc sinh quet ma QR tren man hinh Bang dieu khien de vao lop.
-echo.
-echo ============================================================
-echo DANG KET NOI VOI POWERPOINT (Tu dong nhan dien khi an F5)...
+echo      DANG MO BANG DIEU KHIEN TRINH CHIẾU CHO GIAO VIEN
 echo ============================================================
 echo.
+echo 1. Dang mo trang dieu khien tren trinh duyet...
+start https://hncanhlsts.github.io/lop-hoc/teacher.html
 
-:: 3. Chay script dong bo PowerPoint
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0server\sync_powerpoint.ps1"
-
+echo.
+echo 2. Ban chi can bam nut xanh: [BAT TRINH CHIEU CHO HOC SINH]
+echo    va chon Cua so PowerPoint cua ban!
+echo.
+echo 3. Hoc sinh chi can vao: https://hncanhlsts.github.io/lop-hoc/
+echo    la se thay toan bo Slide bai giang truc tiep!
+echo.
+echo ============================================================
 pause
