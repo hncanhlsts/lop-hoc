@@ -45,7 +45,7 @@
       font-weight: 700;
     }
     
-    /* MÃ LỚP HỌC TRÊN HEADER - TỰ ĐỘNG SINH RIÊNG BIỆT CHO MỖI GIÁO VIÊN */
+    /* MÃ LỚP HỌC TRÊN HEADER */
     .class-code-badge {
       display: flex;
       align-items: center;
@@ -123,11 +123,11 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
+      gap: 16px;
     }
     .panel-title {
       font-size: 16px;
       font-weight: 700;
-      margin-bottom: 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -137,7 +137,6 @@
     .top-controls {
       display: flex;
       gap: 12px;
-      margin-bottom: 16px;
       flex-wrap: wrap;
     }
     .btn {
@@ -162,16 +161,18 @@
       background: #ef4444;
       color: #fff;
     }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-warning { background: var(--warning); color: #000; font-weight: 800; }
 
     /* Video & Preview Box */
     .preview-box {
-      flex: 1;
       background: #030712;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 420px;
+      min-height: 380px;
       position: relative;
       overflow: hidden;
       border: 1.5px dashed var(--border);
@@ -181,7 +182,7 @@
     }
     video {
       max-width: 100%;
-      max-height: 480px;
+      max-height: 440px;
       border-radius: 8px;
     }
     .placeholder-text {
@@ -192,13 +193,106 @@
       padding: 20px;
     }
 
+    /* KHUNG TƯƠNG TÁC CÂU HỎI & GAMIFICATION */
+    .interaction-card {
+      background: #0f172a;
+      border: 1.5px solid #334155;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .type-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .type-tab {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .type-tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: #818cf8;
+      box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
+    }
+
+    .correct-answer-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px 14px;
+      border-radius: 8px;
+    }
+    .ans-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #1e293b;
+      border: 1.5px solid var(--border);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .ans-btn.selected {
+      background: var(--success);
+      border-color: #34d399;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+
+    /* Thống kê Bar Chart */
+    .stats-container {
+      margin-top: 14px;
+      display: none;
+    }
+    .stat-row {
+      margin-bottom: 8px;
+    }
+    .stat-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12.5px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .stat-track {
+      background: #1e293b;
+      height: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+    }
+    .stat-bar {
+      height: 100%;
+      background: #6366f1;
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 10px;
+    }
+    .stat-bar.is-correct {
+      background: #10b981;
+    }
+
     /* Right Sidebar */
     .link-card {
       background: #0f172a;
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 16px;
-      margin-bottom: 16px;
       text-align: center;
     }
     .link-label {
@@ -245,7 +339,7 @@
     .student-list-container {
       flex: 1;
       overflow-y: auto;
-      max-height: 230px;
+      max-height: 250px;
     }
     .student-item {
       display: flex;
@@ -261,6 +355,20 @@
       background: rgba(245, 158, 11, 0.2);
       border: 1px solid #f59e0b;
     }
+    .btn-star-add {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid #f59e0b;
+      color: #fbbf24;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .btn-star-add:hover {
+      background: #f59e0b;
+      color: #000;
+    }
   </style>
 </head>
 <body>
@@ -272,7 +380,7 @@
     <!-- MÃ LỚP HỌC RIÊNG BIỆT DÀNH CHO GIÁO VIÊN -->
     <div class="class-code-badge">
       <span class="class-code-label">🔑 Mã Lớp Học Của Bạn:</span>
-      <span id="header-class-code" class="class-code-value">----</span>
+      <span id="header-class-code" class="class-code-value">1234</span>
       <button id="btn-random-code" class="btn-action-small" title="Tạo mã số ngẫu nhiên mới">🎲 Đổi mã khác</button>
       <button id="btn-custom-code" class="btn-action-small" title="Tự đặt mã theo tên lớp, ví dụ 12A1">✏️ Tự đặt tên</button>
     </div>
@@ -284,7 +392,7 @@
   </header>
 
   <div class="container">
-    <!-- Cột trái: Khung phát sóng bài giảng -->
+    <!-- Cột trái: Khung phát sóng & Trung tâm Tương tác -->
     <div class="panel">
       <div class="top-controls">
         <button id="btn-start" class="btn btn-start">
@@ -299,16 +407,75 @@
         <div id="placeholder" class="placeholder-text">
           <p style="font-size: 44px; margin-bottom: 12px;">📽️</p>
           <p style="font-size: 18px; color: #fff; margin-bottom: 8px;"><b>Cách dùng cực kỳ đơn giản:</b></p>
-          <p>1. Đọc mã lớp: <b id="guide-code" style="color: #fbbf24;">----</b> cho học sinh (hoặc bảo học sinh quét mã QR bên phải).</p>
+          <p>1. Đọc mã lớp: <b id="guide-code" style="color: #fbbf24;">1234</b> cho học sinh (hoặc quét mã QR bên phải).</p>
           <p>2. Bấm nút màu xanh <b>"BẬT TRÌNH CHIẾU CHO HỌC SINH"</b> bên trên $\rightarrow$ chọn cửa sổ PowerPoint.</p>
-          <p>3. Chỉ những học sinh nhập đúng mã lớp của bạn mới xem được bài giảng của bạn!</p>
+          <p>3. Dùng bảng tương tác bên dưới để giao câu hỏi trắc nghiệm, tự luận, lấy thống kê và khen thưởng!</p>
         </div>
         <video id="preview-video" autoplay playsinline muted style="display: none;"></video>
         <canvas id="capture-canvas" style="display: none;"></canvas>
       </div>
+
+      <!-- ========================================================
+           TRUNG TÂM TƯƠNG TÁC: TRẮC NGHIỆM, TỰ LUẬN, THỐNG KÊ & KHEN THƯỞNG
+           ======================================================== -->
+      <div class="interaction-card">
+        <div class="panel-title">
+          <span>🎯 Tương Tác Trực Tiếp Với Học Sinh</span>
+          <span id="quiz-badge-status" style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Chưa kích hoạt</span>
+        </div>
+
+        <!-- Chọn dạng câu hỏi -->
+        <div class="type-tabs" style="margin-top: 12px;">
+          <button class="type-tab active" data-type="mcq">📝 Trắc nghiệm 4 đáp án (A, B, C, D)</button>
+          <button class="type-tab" data-type="tf">⚖️ Đúng / Sai</button>
+          <button class="type-tab" data-type="short">✍️ Tự luận ngắn (Học sinh gõ ý kiến)</button>
+          <button class="type-tab" data-type="poll">📊 Khảo sát mức độ hiểu bài</button>
+        </div>
+
+        <!-- Chọn đáp án đúng (để tự động chấm và thưởng sao) -->
+        <div class="correct-answer-selector" id="correct-ans-wrapper">
+          <span style="font-size: 13px; font-weight: 700; color: #a5b4fc;">Chọn đáp án ĐÚNG:</span>
+          <div id="ans-btn-group" style="display: flex; gap: 8px;">
+            <button class="ans-btn" data-ans="A">A</button>
+            <button class="ans-btn" data-ans="B">B</button>
+            <button class="ans-btn" data-ans="C">C</button>
+            <button class="ans-btn" data-ans="D">D</button>
+          </div>
+          <span style="font-size: 12px; color: var(--text-muted);">(Học sinh chọn đúng sẽ được tặng sao ⭐, chọn sai sẽ được động viên)</span>
+        </div>
+
+        <!-- Nút hành động giao câu hỏi -->
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="btn-launch-quiz" class="btn btn-primary" style="padding: 10px 18px; font-size: 14px;">
+            🚀 Bắt Đầu Câu Hỏi Cho Học Sinh
+          </button>
+          <button id="btn-end-quiz" class="btn btn-stop" style="display: none; padding: 10px 18px; font-size: 14px;">
+            ⏹️ Dừng Nhận Bài
+          </button>
+          <button id="btn-reveal-quiz" class="btn btn-warning" style="display: none; padding: 10px 18px; font-size: 14px;">
+            🎉 Công Bố Đáp Án & Thưởng Sao ⭐
+          </button>
+        </div>
+
+        <!-- Khu vực Thống kê & Biểu đồ kết quả trực tiếp -->
+        <div class="stats-container" id="stats-container">
+          <div style="font-size: 14px; font-weight: 700; color: #38bdf8; margin-bottom: 10px;" id="stats-summary">
+            📊 Thống kê câu trả lời (<span id="submitted-count">0</span> học sinh đã nộp):
+          </div>
+
+          <!-- Các thanh bar chart thống kê -->
+          <div id="bars-wrapper"></div>
+
+          <!-- Danh sách ý kiến tự luận (nếu là dạng short answer) -->
+          <div id="short-answers-wrapper" style="display: none; margin-top: 10px;">
+            <div style="font-size: 13px; font-weight: 700; color: #a5b4fc; margin-bottom: 6px;">Ý kiến học sinh:</div>
+            <div class="answer-cards-grid" id="short-answers-grid"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Cột phải: Thông tin vào lớp dành cho học sinh -->
+    <!-- Cột phải: Thông tin vào lớp & Danh sách học sinh -->
     <div class="panel">
       <div class="panel-title">
         <span>📲 Thông Tin Cho Học Sinh Vào Lớp</span>
@@ -317,7 +484,7 @@
       <div class="link-card">
         <div class="link-label">ĐỌC MÃ NÀY CHO HỌC SINH CỦA BẠN:</div>
         <div class="big-code-display">
-          <div id="sidebar-class-code" class="big-code-number">----</div>
+          <div id="sidebar-class-code" class="big-code-number">1234</div>
         </div>
 
         <div class="link-label">HOẶC HỌC SINH QUÉT MÃ QR NÀY ĐỂ VÀO NGAY:</div>
@@ -326,7 +493,7 @@
       </div>
 
       <div class="panel-title" style="margin-top: 10px;">
-        <span>👥 Học sinh trong lớp bạn (<span id="student-count">0</span>)</span>
+        <span>👥 Học sinh trong lớp (<span id="student-count">0</span>)</span>
       </div>
 
       <div class="student-list-container">
@@ -340,13 +507,7 @@
   </div>
 
   <script>
-    // Hàm sinh mã 4 chữ số ngẫu nhiên duy nhất cho mỗi GV (VD: 5182, 7391)
-    function generateUniqueCode() {
-      return Math.floor(1000 + Math.random() * 9000).toString();
-    }
-
-    // Mã mặc định cố định là 1234 để Thầy/Cô và Học sinh luôn khớp nhau ngay từ đầu.
-    // Nếu có 2 GV cùng dạy một lúc thì GV thứ hai mới cần bấm "Đổi mã" sang mã khác.
+    // Mã lớp học mặc định cố định 1234
     let classCode = localStorage.getItem('classlive_teacher_room') || '1234';
 
     function getRoomPeerId(code) {
@@ -363,17 +524,15 @@
       document.getElementById('qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(studentUrl)}`;
     }
 
-    // Đổi sang mã ngẫu nhiên khác
     document.getElementById('btn-random-code').addEventListener('click', () => {
-      classCode = generateUniqueCode();
+      classCode = Math.floor(1000 + Math.random() * 9000).toString();
       localStorage.setItem('classlive_teacher_room', classCode);
       updateCodeUI();
       reconnectPeer();
     });
 
-    // Tự đặt mã theo tên lớp (ví dụ 12A1, TOAN9)
     document.getElementById('btn-custom-code').addEventListener('click', () => {
-      const custom = prompt('Nhập mã lớp bạn muốn (Ví dụ: 12A1, TOAN9, 6868):', classCode);
+      const custom = prompt('Nhập mã lớp bạn muốn (Ví dụ: 12A1, TOAN9, 1234):', classCode);
       if (custom && custom.trim()) {
         classCode = custom.trim().toUpperCase();
         localStorage.setItem('classlive_teacher_room', classCode);
@@ -385,9 +544,17 @@
     updateCodeUI();
 
     let peer = null;
-    let connections = new Map();
+    let connections = new Map(); // studentPeerId -> { conn, name, isHandRaised, stars: 0, currentAnswer: null }
     let mediaStream = null;
     let captureInterval = null;
+
+    // Trạng thái câu hỏi tương tác
+    let currentQuiz = {
+      active: false,
+      type: 'mcq', // 'mcq', 'tf', 'short', 'poll'
+      correctAnswer: 'A',
+      answers: {} // studentPeerId -> answer
+    };
 
     const btnStart = document.getElementById('btn-start');
     const btnStop = document.getElementById('btn-stop');
@@ -401,6 +568,189 @@
     const captureCanvas = document.getElementById('capture-canvas');
     const ctx = captureCanvas.getContext('2d');
 
+    // Các phần tử Quiz
+    const typeTabs = document.querySelectorAll('.type-tab');
+    const correctAnsWrapper = document.getElementById('correct-ans-wrapper');
+    const ansBtnGroup = document.getElementById('ans-btn-group');
+    const btnLaunchQuiz = document.getElementById('btn-launch-quiz');
+    const btnEndQuiz = document.getElementById('btn-end-quiz');
+    const btnRevealQuiz = document.getElementById('btn-reveal-quiz');
+    const quizBadgeStatus = document.getElementById('quiz-badge-status');
+    const statsContainer = document.getElementById('stats-container');
+    const barsWrapper = document.getElementById('bars-wrapper');
+    const submittedCount = document.getElementById('submitted-count');
+    const shortAnswersWrapper = document.getElementById('short-answers-wrapper');
+    const shortAnswersGrid = document.getElementById('short-answers-grid');
+
+    // Chuyển đổi dạng câu hỏi
+    typeTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        typeTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentQuiz.type = tab.dataset.type;
+        setupAnswerSelector();
+      });
+    });
+
+    function setupAnswerSelector() {
+      ansBtnGroup.innerHTML = '';
+      if (currentQuiz.type === 'mcq') {
+        correctAnsWrapper.style.display = 'flex';
+        ['A', 'B', 'C', 'D'].forEach(opt => {
+          const b = document.createElement('button');
+          b.className = `ans-btn ${currentQuiz.correctAnswer === opt ? 'selected' : ''}`;
+          b.textContent = opt;
+          b.onclick = () => selectCorrectAnswer(opt, b);
+          ansBtnGroup.appendChild(b);
+        });
+      } else if (currentQuiz.type === 'tf') {
+        correctAnsWrapper.style.display = 'flex';
+        currentQuiz.correctAnswer = 'Đúng';
+        ['Đúng', 'Sai'].forEach(opt => {
+          const b = document.createElement('button');
+          b.className = `ans-btn ${currentQuiz.correctAnswer === opt ? 'selected' : ''}`;
+          b.style.width = 'auto';
+          b.style.padding = '0 12px';
+          b.textContent = opt;
+          b.onclick = () => selectCorrectAnswer(opt, b);
+          ansBtnGroup.appendChild(b);
+        });
+      } else {
+        // Tự luận hoặc Khảo sát: không có đáp án đúng cố định
+        correctAnsWrapper.style.display = 'none';
+        currentQuiz.correctAnswer = null;
+      }
+    }
+
+    function selectCorrectAnswer(opt, btn) {
+      currentQuiz.correctAnswer = opt;
+      document.querySelectorAll('.ans-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    setupAnswerSelector();
+
+    // BẮT ĐẦU CÂU HỎI CHO HỌC SINH
+    btnLaunchQuiz.addEventListener('click', () => {
+      currentQuiz.active = true;
+      currentQuiz.answers = {};
+      connections.forEach(s => { s.currentAnswer = null; });
+
+      btnLaunchQuiz.style.display = 'none';
+      btnEndQuiz.style.display = 'inline-flex';
+      btnRevealQuiz.style.display = 'inline-flex';
+      quizBadgeStatus.textContent = '🟢 Đang mở trả lời';
+      quizBadgeStatus.style.color = '#10b981';
+
+      statsContainer.style.display = 'block';
+      updateStatsUI();
+
+      // Phát tín hiệu tới toàn bộ học sinh
+      broadcastData({
+        type: 'QUIZ_START',
+        quizType: currentQuiz.type,
+        options: currentQuiz.type === 'mcq' ? ['A', 'B', 'C', 'D'] : (currentQuiz.type === 'tf' ? ['Đúng', 'Sai'] : (currentQuiz.type === 'poll' ? ['🟢 Đã hiểu rõ', '🟡 Còn băn khoăn', '🔴 Chưa hiểu'] : []))
+      });
+    });
+
+    // DỪNG NHẬN BÀI
+    btnEndQuiz.addEventListener('click', () => {
+      currentQuiz.active = false;
+      btnEndQuiz.style.display = 'none';
+      quizBadgeStatus.textContent = '⏹️ Đã dừng nhận bài';
+      quizBadgeStatus.style.color = '#f59e0b';
+      broadcastData({ type: 'QUIZ_STOP' });
+    });
+
+    // CÔNG BỐ ĐÁP ÁN & KHEN THƯỞNG / ĐỘNG VIÊN
+    btnRevealQuiz.addEventListener('click', () => {
+      currentQuiz.active = false;
+      btnEndQuiz.style.display = 'none';
+      btnRevealQuiz.style.display = 'none';
+      btnLaunchQuiz.style.display = 'inline-flex';
+      quizBadgeStatus.textContent = '🎉 Đã công bố kết quả';
+      quizBadgeStatus.style.color = '#6366f1';
+
+      // Tính kết quả cho từng học sinh và thưởng sao
+      const resultsSummary = {};
+      connections.forEach((student, id) => {
+        const studentAns = currentQuiz.answers[id];
+        const isCorrect = currentQuiz.correctAnswer ? (studentAns === currentQuiz.correctAnswer) : true;
+        
+        if (isCorrect && currentQuiz.correctAnswer) {
+          student.stars = (student.stars || 0) + 1; // Thưởng 1 sao
+        }
+
+        resultsSummary[id] = {
+          name: student.name,
+          answer: studentAns,
+          isCorrect: isCorrect,
+          stars: student.stars || 0
+        };
+
+        // Gửi kết quả riêng cho từng học sinh
+        if (student.conn && student.conn.open) {
+          student.conn.send({
+            type: 'QUIZ_REVEAL',
+            correctAnswer: currentQuiz.correctAnswer,
+            yourAnswer: studentAns,
+            isCorrect: isCorrect,
+            stars: student.stars || 0
+          });
+        }
+      });
+
+      updateStatsUI(true);
+      updateStudentUI();
+    });
+
+    // Cập nhật biểu đồ thống kê
+    function updateStatsUI(revealed = false) {
+      const totalAnswers = Object.keys(currentQuiz.answers).length;
+      submittedCount.textContent = totalAnswers;
+
+      if (currentQuiz.type === 'short') {
+        barsWrapper.style.display = 'none';
+        shortAnswersWrapper.style.display = 'block';
+        shortAnswersGrid.innerHTML = Object.entries(currentQuiz.answers).map(([id, text]) => {
+          const s = connections.get(id);
+          return `<div class="answer-card"><div class="author">👤 ${s ? s.name : 'Học sinh'}</div><div>${text}</div></div>`;
+        }).join('') || '<div style="color: #64748b; font-size: 13px;">Chưa có câu trả lời nào...</div>';
+        return;
+      }
+
+      shortAnswersWrapper.style.display = 'none';
+      barsWrapper.style.display = 'block';
+
+      let options = [];
+      if (currentQuiz.type === 'mcq') options = ['A', 'B', 'C', 'D'];
+      else if (currentQuiz.type === 'tf') options = ['Đúng', 'Sai'];
+      else if (currentQuiz.type === 'poll') options = ['🟢 Đã hiểu rõ', '🟡 Còn băn khoăn', '🔴 Chưa hiểu'];
+
+      let counts = {};
+      options.forEach(opt => counts[opt] = 0);
+      Object.values(currentQuiz.answers).forEach(ans => {
+        if (counts[ans] !== undefined) counts[ans]++;
+      });
+
+      barsWrapper.innerHTML = options.map(opt => {
+        const count = counts[opt] || 0;
+        const pct = totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0;
+        const isCorrectOpt = revealed && currentQuiz.correctAnswer === opt;
+        return `
+          <div class="stat-row">
+            <div class="stat-meta">
+              <span>${isCorrectOpt ? '✅ ' : ''}<b>${opt}</b>: ${count} bạn</span>
+              <span>${pct}%</span>
+            </div>
+            <div class="stat-track">
+              <div class="stat-bar ${isCorrectOpt ? 'is-correct' : ''}" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function reconnectPeer() {
       if (peer) {
         peer.destroy();
@@ -411,23 +761,20 @@
       initPeer();
     }
 
-    // Khởi tạo Peer WebRTC độc lập cho phòng của giáo viên này
     function initPeer() {
       const roomPeerId = getRoomPeerId(classCode);
       peer = new Peer(roomPeerId, { debug: 1 });
 
       peer.on('open', (id) => {
-        console.log('[GV] Phòng của bạn đã sẵn sàng với ID:', id);
+        console.log('[GV] Phòng sẵn sàng:', id);
       });
 
       peer.on('connection', (conn) => {
         const studentPeerId = conn.peer;
 
         conn.on('open', () => {
-          connections.set(studentPeerId, { conn: conn, name: 'Học sinh' });
+          connections.set(studentPeerId, { conn: conn, name: 'Học sinh', stars: 0 });
           updateStudentUI();
-          
-          // Nếu đang phát sóng thì gọi truyền video stream tới học sinh ngay
           if (mediaStream) {
             peer.call(studentPeerId, mediaStream);
           }
@@ -435,49 +782,60 @@
         });
 
         conn.on('data', (data) => {
+          const student = connections.get(studentPeerId);
+          if (!student) return;
+
           if (data.type === 'JOIN') {
-            if (connections.has(studentPeerId)) {
-              connections.get(studentPeerId).name = data.name || 'Học sinh';
-              updateStudentUI();
-            }
+            student.name = data.name || 'Học sinh';
+            updateStudentUI();
           } else if (data.type === 'RAISE_HAND') {
-            if (connections.has(studentPeerId)) {
-              connections.get(studentPeerId).isHandRaised = !!data.isRaised;
-              updateStudentUI();
-            }
+            student.isHandRaised = !!data.isRaised;
+            updateStudentUI();
+          } else if (data.type === 'QUIZ_ANSWER') {
+            currentQuiz.answers[studentPeerId] = data.answer;
+            student.currentAnswer = data.answer;
+            updateStatsUI();
+            updateStudentUI();
           }
         });
 
         conn.on('close', () => {
           connections.delete(studentPeerId);
-          updateStudentUI();
-        });
-
-        conn.on('error', () => {
-          connections.delete(studentPeerId);
+          delete currentQuiz.answers[studentPeerId];
+          updateStatsUI();
           updateStudentUI();
         });
       });
+    }
 
-      peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          // Mã này đã có giáo viên khác đang dùng, tự đổi sang mã mới
-          alert(`Mã lớp [${classCode}] đang có một thầy/cô khác sử dụng. Hệ thống sẽ tự cấp mã mới cho bạn!`);
-          classCode = generateUniqueCode();
-          sessionStorage.setItem('classlive_teacher_room', classCode);
-          updateCodeUI();
-          reconnectPeer();
+    function broadcastData(data) {
+      connections.forEach(item => {
+        if (item.conn && item.conn.open) {
+          item.conn.send(data);
         }
       });
     }
 
+    // Tặng sao trực tiếp cho học sinh
+    window.awardStar = function(studentPeerId) {
+      const student = connections.get(studentPeerId);
+      if (student) {
+        student.stars = (student.stars || 0) + 1;
+        updateStudentUI();
+        if (student.conn && student.conn.open) {
+          student.conn.send({
+            type: 'STAR_AWARD',
+            stars: student.stars,
+            message: '🌟 Thầy/Cô vừa tặng bạn 1 Ngôi Sao vì phát biểu tích cực!'
+          });
+        }
+      }
+    };
+
     btnStart.addEventListener('click', async () => {
       try {
         mediaStream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            cursor: "always",
-            frameRate: { ideal: 5, max: 10 }
-          },
+          video: { cursor: "always", frameRate: { ideal: 5, max: 10 } },
           audio: false
         });
 
@@ -492,27 +850,19 @@
         statusDot.classList.add('active');
         statusText.textContent = `🟢 ĐANG PHÁT SÓNG (MÃ: ${classCode})`;
 
-        mediaStream.getVideoTracks()[0].onended = () => {
-          stopBroadcasting();
-        };
-
+        mediaStream.getVideoTracks()[0].onended = () => { stopBroadcasting(); };
         startFrameCapture();
 
-        // Truyền video stream tới tất cả học sinh đã có mặt trong phòng
         connections.forEach((item, studentPeerId) => {
-          if (peer) {
-            peer.call(studentPeerId, mediaStream);
-          }
+          if (peer) peer.call(studentPeerId, mediaStream);
         });
 
       } catch (err) {
-        console.error('Không thể chia sẻ màn hình:', err);
+        console.error('Lỗi chia sẻ:', err);
       }
     });
 
-    btnStop.addEventListener('click', () => {
-      stopBroadcasting();
-    });
+    btnStop.addEventListener('click', () => { stopBroadcasting(); });
 
     function stopBroadcasting() {
       if (mediaStream) {
@@ -534,38 +884,20 @@
 
     function startFrameCapture() {
       if (captureInterval) clearInterval(captureInterval);
-
       captureInterval = setInterval(() => {
         if (!mediaStream || previewVideo.videoWidth === 0) return;
-
         captureCanvas.width = previewVideo.videoWidth;
         captureCanvas.height = previewVideo.videoHeight;
         ctx.drawImage(previewVideo, 0, 0, captureCanvas.width, captureCanvas.height);
-
         const base64Image = captureCanvas.toDataURL('image/jpeg', 0.82);
-
-        const payload = {
-          type: 'SLIDE_CHANGE',
-          imageUrl: base64Image,
-          timestamp: Date.now()
-        };
-
-        connections.forEach(item => {
-          if (item.conn && item.conn.open) {
-            item.conn.send(payload);
-          }
-        });
+        broadcastData({ type: 'SLIDE_CHANGE', imageUrl: base64Image });
       }, 800);
     }
 
     function sendCurrentFrame(conn) {
       if (captureCanvas.width > 0 && conn.open) {
         const base64Image = captureCanvas.toDataURL('image/jpeg', 0.82);
-        conn.send({
-          type: 'SLIDE_CHANGE',
-          imageUrl: base64Image,
-          timestamp: Date.now()
-        });
+        conn.send({ type: 'SLIDE_CHANGE', imageUrl: base64Image });
       }
     }
 
@@ -576,13 +908,17 @@
         return;
       }
       let html = '';
-      connections.forEach(item => {
+      connections.forEach((item, studentId) => {
         html += `
           <li class="student-item ${item.isHandRaised ? 'hand-raised' : ''}">
-            <span>${item.isHandRaised ? '✋ ' : '👤 '}${item.name}</span>
-            <span style="font-size: 12px; color: ${item.isHandRaised ? '#f59e0b' : '#10b981'}; font-weight: bold;">
-              ${item.isHandRaised ? 'Đang giơ tay!' : 'Đang xem'}
-            </span>
+            <div>
+              <span>${item.isHandRaised ? '✋ ' : '👤 '}<b>${item.name}</b></span>
+              <span style="font-size: 11px; margin-left: 6px; color: #fbbf24;">⭐ ${item.stars || 0}</span>
+              <div style="font-size: 11px; color: ${item.currentAnswer ? '#10b981' : '#64748b'};">
+                ${item.currentAnswer ? 'Đã nộp: ' + item.currentAnswer : (item.isHandRaised ? 'Đang giơ tay!' : 'Đang theo dõi')}
+              </div>
+            </div>
+            <button class="btn-star-add" onclick="awardStar('${studentId}')" title="Tặng sao cho học sinh">⭐+1</button>
           </li>
         `;
       });

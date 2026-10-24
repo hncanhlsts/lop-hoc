@@ -82,6 +82,7 @@
       <div class="header-left">
         <span class="status-dot"></span>
         <span id="class-badge" class="class-tag">LỚP HỌC</span>
+        <span id="my-stars" class="student-star-badge" title="Ngôi sao tích lũy của em">⭐ 0</span>
       </div>
 
       <div class="header-center">
@@ -120,18 +121,27 @@
       </div>
     </main>
 
-    <!-- Hộp câu hỏi trắc nghiệm khi Giáo viên kích hoạt -->
+    <!-- Hộp câu hỏi tương tác & Gamification khi Giáo viên kích hoạt -->
     <div id="quiz-overlay" class="quiz-overlay">
       <div class="quiz-header">
-        <span class="quiz-title-badge">CÂU HỎI TRẮC NGHIỆM</span>
-        <span id="quiz-timer" class="quiz-timer">⏱️ Đang mở</span>
+        <span id="quiz-badge-title" class="quiz-title-badge">CÂU HỎI TƯƠNG TÁC</span>
+        <button id="btn-close-quiz" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;">✕</button>
       </div>
-      <div id="quiz-options-container" class="quiz-grid">
-        <!-- Render các nút A, B, C, D động -->
+
+      <!-- Khu vực nhập nội dung (Trắc nghiệm hoặc Tự luận) -->
+      <div id="quiz-content-area">
+        <div id="quiz-options-container" class="quiz-grid"></div>
+        <div id="quiz-short-container" style="display: none;">
+          <textarea id="quiz-short-input" class="short-answer-box" placeholder="Nhập câu trả lời hoặc ý kiến của em vào đây..."></textarea>
+          <button id="btn-submit-short" class="btn-primary" style="padding: 10px;">Gửi Câu Trả Lời Cho Thầy/Cô</button>
+        </div>
       </div>
-      <div id="quiz-submitted-msg" class="quiz-submitted-msg">
-        <!-- Thông báo sau khi nộp -->
-      </div>
+
+      <!-- Thông báo khi đã nộp bài -->
+      <div id="quiz-submitted-msg" class="quiz-submitted-msg"></div>
+
+      <!-- Khung vinh danh làm đúng / động viên làm sai khi giáo viên công bố -->
+      <div id="quiz-result-banner" style="display: none;"></div>
     </div>
 
     <!-- Thanh tương tác dưới cùng của học sinh -->

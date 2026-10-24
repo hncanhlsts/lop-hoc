@@ -614,3 +614,164 @@ html, body {
   color: #94a3b8;
   line-height: 1.5;
 }
+
+/* ==========================================
+   TƯƠNG TÁC NÂNG CAO & KHEN THƯỞNG GAMIFICATION
+   ========================================== */
+
+/* Nút chọn dạng câu hỏi */
+.quiz-type-selector {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.type-btn {
+  background: #1e293b;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.type-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: #818cf8;
+}
+
+/* Ô nhập tự luận cho học sinh */
+.short-answer-box {
+  width: 100%;
+  padding: 12px;
+  background: #0f172a;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14.5px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+  outline: none;
+  margin-bottom: 10px;
+}
+
+.short-answer-box:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+}
+
+/* Khung hiển thị kết quả chúc mừng hoặc động viên */
+.result-banner {
+  padding: 18px;
+  border-radius: 14px;
+  text-align: center;
+  margin-top: 10px;
+  animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.result-banner.correct {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.15) 100%);
+  border: 2px solid #10b981;
+  color: #a7f3d0;
+}
+
+.result-banner.wrong {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border: 2px solid #f87171;
+  color: #fecaca;
+}
+
+.result-icon {
+  font-size: 40px;
+  margin-bottom: 6px;
+}
+
+.result-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.result-desc {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+/* Biểu đồ thanh thống kê của giáo viên */
+.stat-bar-container {
+  margin-bottom: 8px;
+}
+.stat-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.stat-bar-bg {
+  background: #0f172a;
+  height: 18px;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.stat-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5 0%, #6366f1 100%);
+  border-radius: 9px;
+  transition: width 0.3s ease;
+}
+.stat-bar-fill.correct {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+/* Thẻ ý kiến tự luận */
+.answer-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+.answer-card {
+  background: #0f172a;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.answer-card .author {
+  font-size: 11px;
+  font-weight: 700;
+  color: #a5b4fc;
+  margin-bottom: 3px;
+}
+
+/* Badge sao của học sinh */
+.student-star-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}

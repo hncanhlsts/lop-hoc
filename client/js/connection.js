@@ -23,6 +23,8 @@ class SlideConnection {
     this.onStreamUpdate = options.onStreamUpdate || (() => {});
     this.onQuizStart = options.onQuizStart || (() => {});
     this.onQuizEnd = options.onQuizEnd || (() => {});
+    this.onQuizReveal = options.onQuizReveal || (() => {});
+    this.onStarAward = options.onStarAward || (() => {});
   }
 
   connect(roomCode, studentName, isDemo = false) {
@@ -112,8 +114,12 @@ class SlideConnection {
         });
       } else if (data.type === 'QUIZ_START') {
         this.onQuizStart(data);
-      } else if (data.type === 'QUIZ_END') {
+      } else if (data.type === 'QUIZ_STOP') {
         this.onQuizEnd(data);
+      } else if (data.type === 'QUIZ_REVEAL') {
+        this.onQuizReveal(data);
+      } else if (data.type === 'STAR_AWARD') {
+        this.onStarAward(data);
       }
     });
 
@@ -135,6 +141,16 @@ class SlideConnection {
         type: 'RAISE_HAND',
         name: this.studentName,
         isRaised: isRaised
+      });
+    }
+  }
+
+  submitAnswer(answer) {
+    if (this.conn && this.conn.open) {
+      this.conn.send({
+        type: 'QUIZ_ANSWER',
+        answer: answer,
+        name: this.studentName
       });
     }
   }

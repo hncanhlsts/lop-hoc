@@ -1,5 +1,6 @@
 /**
  * APP.JS - Điều khiển luồng ứng dụng chính của học sinh
+ * Tích hợp Trắc nghiệm (A,B,C,D), Đúng/Sai, Tự luận ngắn, Khảo sát & Khen thưởng sao
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Viewer DOM
   const classBadge = document.getElementById('class-badge');
+  const myStars = document.getElementById('my-stars');
   const slideCounter = document.getElementById('slide-counter');
   const syncStatusText = document.getElementById('sync-status-text');
   const slideViewport = document.getElementById('slide-viewport');
@@ -21,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const slideVideo = document.getElementById('slide-video');
   const waitingCard = document.getElementById('waiting-card');
   const waitingTitle = document.getElementById('waiting-title');
-  const waitingDesc = document.getElementById('waiting-desc');
   const zoomHint = document.getElementById('zoom-hint');
 
   // Zoom controls
@@ -35,17 +36,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnReaction = document.getElementById('btn-reaction');
   const btnDownloadSlide = document.getElementById('btn-download-slide');
 
-  // Quiz overlay
+  // Quiz overlay elements
   const quizOverlay = document.getElementById('quiz-overlay');
-  const quizTimer = document.getElementById('quiz-timer');
+  const quizBadgeTitle = document.getElementById('quiz-badge-title');
+  const btnCloseQuiz = document.getElementById('btn-close-quiz');
+  const quizContentArea = document.getElementById('quiz-content-area');
   const quizOptionsContainer = document.getElementById('quiz-options-container');
+  const quizShortContainer = document.getElementById('quiz-short-container');
+  const quizShortInput = document.getElementById('quiz-short-input');
+  const btnSubmitShort = document.getElementById('btn-submit-short');
   const quizSubmittedMsg = document.getElementById('quiz-submitted-msg');
+  const quizResultBanner = document.getElementById('quiz-result-banner');
 
   // Toast
   const toastEl = document.getElementById('toast');
 
   let currentQuiz = null;
   let isHandRaised = false;
+  let accumulatedStars = 0;
 
   // --- Khởi tạo SlideViewer (Pinch-to-zoom & Pan) ---
   const viewer = new SlideViewer(slideViewport, slideCanvasWrapper);
@@ -73,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     },
     onStreamUpdate: (stream) => {
-      // Nhận video trình chiếu trực tiếp từ PowerPoint của GV
       if (slideVideo) {
         slideVideo.srcObject = stream;
         slideVideo.style.display = 'block';
@@ -85,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('🟢 Đã nhận bài giảng trực tiếp từ Thầy/Cô!');
     },
     onSlideUpdate: (slideData) => {
-      // Cập nhật ảnh slide
       if (slideData.imageUrl) {
         currentSlideImg.src = slideData.imageUrl;
         currentSlideImg.style.display = 'block';
@@ -93,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (waitingCard) waitingCard.style.display = 'none';
       }
       slideCounter.textContent = `${slideData.slideNumber}/${slideData.totalSlides}`;
-      
       viewer.resetZoom();
       if (zoomHint) {
         setTimeout(() => { zoomHint.style.opacity = '0'; }, 3500);
@@ -103,21 +108,27 @@ document.addEventListener('DOMContentLoaded', () => {
       showQuiz(quizData);
     },
     onQuizEnd: () => {
-      hideQuiz();
+      if (quizOverlay.classList.contains('open') && quizSubmittedMsg.style.display === 'none') {
+        quizSubmittedMsg.style.display = 'block';
+        quizSubmittedMsg.innerHTML = '⏹️ Thầy/Cô đã dừng nhận câu trả lời.';
+        quizContentArea.style.display = 'none';
+      }
+    },
+    onQuizReveal: (resultData) => {
+      showQuizResult(resultData);
+    },
+    onStarAward: (starData) => {
+      accumulatedStars = starData.stars;
+      if (myStars) myStars.textContent = `⭐ ${accumulatedStars}`;
+      showToast(starData.message || '🌟 Thầy/Cô vừa tặng bạn 1 Ngôi Sao!');
     }
   });
 
   // --- Xử lý Đăng nhập vào lớp ---
   joinForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const roomCode = classCodeInput.value.trim().toUpperCase();
+    const roomCode = classCodeInput.value.trim().toUpperCase() || '1234';
     const name = studentNameInput.value.trim() || 'Học sinh';
-
-    if (!roomCode) {
-      showToast('⚠️ Vui lòng nhập Mã lớp học của Thầy/Cô');
-      classCodeInput.focus();
-      return;
-    }
 
     localStorage.setItem('classpoint_student_name', name);
     enterClassroom(roomCode, name, false);
@@ -197,51 +208,142 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('📥 Đang tải ảnh slide về thiết bị...');
   });
 
-  // --- Xử lý Câu hỏi Trắc nghiệm (Quiz Modal) ---
+  // ==========================================
+  // XỬ LÝ CÂU HỎI TƯƠNG TÁC (QUIZ / SHORT / POLL)
+  // ==========================================
   function showQuiz(quizData) {
     currentQuiz = quizData;
-    quizOptionsContainer.innerHTML = '';
+    quizResultBanner.style.display = 'none';
     quizSubmittedMsg.style.display = 'none';
-    quizOptionsContainer.style.display = 'grid';
+    quizContentArea.style.display = 'block';
 
-    const options = quizData.options || ['A', 'B', 'C', 'D'];
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'quiz-option-btn';
-      btn.textContent = `Đáp án ${opt}`;
-      btn.addEventListener('click', () => {
-        // Highlight lựa chọn
-        document.querySelectorAll('.quiz-option-btn').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
+    const type = quizData.quizType || 'mcq';
 
-        // Nộp bài
-        connection.submitQuizAnswer(quizData.quizId, opt);
-        setTimeout(() => {
-          quizOptionsContainer.style.display = 'none';
-          quizSubmittedMsg.style.display = 'block';
-          quizSubmittedMsg.innerHTML = `✅ Đã chọn <b>Đáp án ${opt}</b>!<br>Đang chờ giáo viên công bố kết quả.`;
-        }, 300);
+    if (type === 'short') {
+      // Dạng tự luận ngắn
+      quizBadgeTitle.textContent = '✍️ CÂU HỎI TỰ LUẬN';
+      quizOptionsContainer.style.display = 'none';
+      quizShortContainer.style.display = 'block';
+      quizShortInput.value = '';
+      quizShortInput.focus();
+
+      btnSubmitShort.onclick = () => {
+        const text = quizShortInput.value.trim();
+        if (!text) {
+          showToast('⚠️ Vui lòng nhập câu trả lời!');
+          return;
+        }
+        submitStudentAnswer(text, 'Đã gửi câu trả lời của em!');
+      };
+
+    } else {
+      // Dạng lựa chọn (Trắc nghiệm A,B,C,D / Đúng Sai / Bình chọn)
+      quizShortContainer.style.display = 'none';
+      quizOptionsContainer.style.display = 'grid';
+      quizOptionsContainer.innerHTML = '';
+
+      if (type === 'tf') {
+        quizBadgeTitle.textContent = '⚖️ CÂU HỎI ĐÚNG / SAI';
+      } else if (type === 'poll') {
+        quizBadgeTitle.textContent = '📊 KHẢO SÁT HIỂU BÀI';
+      } else {
+        quizBadgeTitle.textContent = '📝 CÂU HỎI TRẮC NGHIỆM';
+      }
+
+      const options = quizData.options || ['A', 'B', 'C', 'D'];
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-option-btn';
+        btn.textContent = type === 'mcq' ? `Đáp án ${opt}` : opt;
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.quiz-option-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          submitStudentAnswer(opt, `Đã chọn: <b>${opt}</b>!`);
+        });
+        quizOptionsContainer.appendChild(btn);
       });
-      quizOptionsContainer.appendChild(btn);
-    });
+    }
 
     quizOverlay.classList.add('open');
-    showToast('📝 Thầy cô vừa kích hoạt câu hỏi trắc nghiệm!');
+    showToast('🎯 Thầy cô vừa giao câu hỏi mới!');
   }
 
-  function hideQuiz() {
-    quizOverlay.classList.remove('open');
-    currentQuiz = null;
+  function submitStudentAnswer(answer, textFeedback) {
+    connection.submitAnswer(answer);
+    setTimeout(() => {
+      quizContentArea.style.display = 'none';
+      quizSubmittedMsg.style.display = 'block';
+      quizSubmittedMsg.innerHTML = `✅ ${textFeedback}<br>Đang chờ Thầy/Cô công bố kết quả.`;
+    }, 250);
   }
+
+  // ==========================================
+  // CÔNG BỐ KẾT QUẢ & VINH DANH / ĐỘNG VIÊN
+  // ==========================================
+  function showQuizResult(resultData) {
+    quizContentArea.style.display = 'none';
+    quizSubmittedMsg.style.display = 'none';
+    quizResultBanner.style.display = 'block';
+
+    if (resultData.stars !== undefined) {
+      accumulatedStars = resultData.stars;
+      if (myStars) myStars.textContent = `⭐ ${accumulatedStars}`;
+    }
+
+    // Nếu không có đáp án đúng (tự luận / khảo sát)
+    if (!resultData.correctAnswer) {
+      quizResultBanner.innerHTML = `
+        <div class="result-banner correct">
+          <div class="result-icon">👍 🌟</div>
+          <div class="result-title">CẢM ƠN EM ĐÃ THAM GIA!</div>
+          <div class="result-desc">Thầy/Cô đã ghi nhận câu trả lời của em!</div>
+        </div>
+      `;
+      return;
+    }
+
+    // Nếu làm ĐÚNG
+    if (resultData.isCorrect) {
+      quizResultBanner.innerHTML = `
+        <div class="result-banner correct">
+          <div class="result-icon">🎉 ⭐ 🌟</div>
+          <div class="result-title">XUẤT SẮC! CHÍNH XÁC!</div>
+          <div class="result-desc">
+            Đáp án <b>${resultData.yourAnswer}</b> là hoàn toàn chính xác!<br>
+            Em được Thầy/Cô thưởng <b>+1 Ngôi Sao ⭐</b>!
+          </div>
+        </div>
+      `;
+      showToast('🎉 Chúc mừng! Bạn đã trả lời đúng (+1⭐)');
+    } else {
+      // Nếu làm SAI -> ĐỘNG VIÊN TÍCH CỰC
+      quizResultBanner.innerHTML = `
+        <div class="result-banner wrong">
+          <div class="result-icon">💪 💡</div>
+          <div class="result-title">CỐ GẮNG LÊN NHÉ EM!</div>
+          <div class="result-desc">
+            Đáp án đúng là: <b style="color: #6ee7b7; font-size: 16px;">${resultData.correctAnswer}</b>.<br>
+            Em đã chọn: <b>${resultData.yourAnswer || 'Chưa kịp nộp'}</b>.<br>
+            Đừng nản lòng nhé! Hãy chú ý nghe Thầy/Cô giải thích và làm tốt ở câu tiếp theo!
+          </div>
+        </div>
+      `;
+      showToast('💪 Đừng buồn nhé, lần sau cố gắng hơn!');
+    }
+  }
+
+  btnCloseQuiz.addEventListener('click', () => {
+    quizOverlay.classList.remove('open');
+  });
 
   // --- Tiện ích Toast thông báo ---
   window.showToast = function(msg) {
     if (!toastEl) return;
-    toastEl.textContent = msg;
+    toastEl.innerHTML = msg;
     toastEl.classList.add('show');
     clearTimeout(toastEl._timer);
     toastEl._timer = setTimeout(() => {
       toastEl.classList.remove('show');
-    }, 2800);
+    }, 3200);
   };
 });
