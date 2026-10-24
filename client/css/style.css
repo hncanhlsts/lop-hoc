@@ -868,3 +868,319 @@ html, body {
   border: none !important;
   border-radius: 8px;
 }
+
+
+/* ==========================================
+   CLASSPOINT EXTENSIONS: WORD CLOUD, DRAWING, 
+   PHOTO UPLOAD, LEADERBOARD & SHORT ANSWER OVERVIEW
+   ========================================== */
+
+/* 1. TỔNG QUAN CÂU TRẢ LỜI NGẮN (SHORT ANSWER OVERVIEW) */
+.answer-overview-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: #0f172a;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-top: 10px;
+}
+
+.overview-stat-pill {
+  font-size: 13px;
+  font-weight: 700;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.overview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-anon-btn {
+  background: #1e293b;
+  border: 1px solid var(--border);
+  color: #e2e8f0;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.toggle-anon-btn.active {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.answer-card-enhanced {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 12px;
+  position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.answer-card-enhanced:hover {
+  border-color: #6366f1;
+  transform: translateY(-2px);
+}
+.answer-card-enhanced.pinned {
+  border: 2px solid #fbbf24;
+  background: linear-gradient(135deg, #1e293b 0%, rgba(251, 191, 36, 0.1) 100%);
+}
+
+.answer-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.answer-card-author {
+  font-size: 12px;
+  font-weight: 700;
+  color: #a5b4fc;
+}
+.answer-card-body {
+  font-size: 14px;
+  color: #f8fafc;
+  line-height: 1.45;
+  margin-bottom: 10px;
+  word-break: break-word;
+}
+.answer-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+/* 2. ĐÁM MÂY TỪ (WORD CLOUD) */
+.word-cloud-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: #0f172a;
+  border-radius: 12px;
+  border: 1.5px solid #334155;
+  min-height: 180px;
+  margin-top: 12px;
+}
+.word-cloud-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 700;
+  color: #fff;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: popIn 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.word-cloud-tag:hover {
+  transform: scale(1.1);
+}
+.word-cloud-count {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+/* 3. VẼ TRÊN SLIDE (SLIDE DRAWING) */
+.drawing-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #4f46e5;
+  background: #fff;
+  touch-action: none;
+}
+#drawing-canvas {
+  width: 100%;
+  height: 260px;
+  display: block;
+  cursor: crosshair;
+}
+.drawing-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #0f172a;
+  border-top: 1px solid var(--border);
+}
+.drawing-colors {
+  display: flex;
+  gap: 8px;
+}
+.color-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s ease;
+}
+.color-dot.active {
+  transform: scale(1.25);
+  border-color: #fff;
+  box-shadow: 0 0 8px rgba(255,255,255,0.6);
+}
+
+/* 4. CHỤP ẢNH BÀI VỞ (PHOTO SUBMISSION GALLERY) */
+.photo-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.photo-card {
+  background: #1e293b;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.photo-card:hover {
+  transform: scale(1.03);
+  border-color: #38bdf8;
+}
+.photo-card img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  display: block;
+}
+.photo-card-info {
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #e2e8f0;
+}
+
+/* 5. BẢNG XẾP HẠNG VINH DANH (LEADERBOARD MODAL) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.leaderboard-modal {
+  background: #1e293b;
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.leaderboard-header {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  padding: 16px 20px;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.leaderboard-podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 16px 12px;
+  background: #0f172a;
+}
+.podium-place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.podium-place.first { order: 2; }
+.podium-place.second { order: 1; }
+.podium-place.third { order: 3; }
+
+.podium-avatar {
+  font-size: 32px;
+  margin-bottom: 4px;
+}
+.podium-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
+  max-width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.podium-stars {
+  font-size: 12px;
+  color: #fbbf24;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.podium-bar {
+  width: 76px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 20px;
+}
+.podium-bar.gold { height: 90px; background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%); }
+.podium-bar.silver { height: 65px; background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%); }
+.podium-bar.bronze { height: 45px; background: linear-gradient(180deg, #f97316 0%, #c2410c 100%); }
+
+.leaderboard-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 12px 16px;
+  list-style: none;
+}
+.leaderboard-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  background: #0f172a;
+  border: 1px solid var(--border);
+  font-size: 13.5px;
+}

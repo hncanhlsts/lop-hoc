@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Lớp Học Trực Tuyến - Xem Slide Bài Giảng</title>
-  <link rel="stylesheet" href="css/style.css?v=4.2">
-  <script src="js/mqtt.min.js?v=4.2"></script>
+  <link rel="stylesheet" href="css/style.css?v=4.3">
+  <script src="js/mqtt.min.js?v=4.3"></script>
   <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
@@ -122,12 +122,62 @@
         </div>
       </div>
 
-      <!-- Khu vực nhập nội dung (Trắc nghiệm hoặc Tự luận) -->
+      <!-- Khu vực nhập nội dung câu hỏi ClassPoint -->
       <div id="quiz-content-area">
+        <!-- 1. Trắc nghiệm (A, B, C, D) & Đúng/Sai -->
         <div id="quiz-options-container" class="quiz-grid"></div>
+
+        <!-- 2. Tự luận ngắn (Short Answer) -->
         <div id="quiz-short-container" style="display: none;">
           <textarea id="quiz-short-input" class="short-answer-box" placeholder="Nhập câu trả lời hoặc ý kiến của em vào đây..."></textarea>
-          <button id="btn-submit-short" class="btn-primary" style="padding: 10px;">Gửi Câu Trả Lời Cho Thầy/Cô</button>
+          <button id="btn-submit-short" class="btn-primary" style="padding: 10px; width: 100%; margin-top: 8px;">Gửi Câu Trả Lời Cho Thầy/Cô</button>
+        </div>
+
+        <!-- 3. Đám mây từ (Word Cloud) -->
+        <div id="quiz-wordcloud-container" style="display: none;">
+          <p style="font-size: 13px; color: #a5b4fc; margin-bottom: 8px;">☁️ Nhập 1-3 từ khóa ngắn gọn của em:</p>
+          <input type="text" id="quiz-wordcloud-input" class="short-answer-box" style="height: 44px; min-height: 44px; margin-bottom: 8px;" placeholder="Ví dụ: Quang hợp, Lục lạp, Diệp lục..." />
+          <button id="btn-submit-wordcloud" class="btn-primary" style="padding: 10px; width: 100%;">Gửi Từ Khóa</button>
+        </div>
+
+        <!-- 4. Điền vào chỗ trống (Fill in Blank) -->
+        <div id="quiz-fillblank-container" style="display: none;">
+          <p style="font-size: 13px; color: #a5b4fc; margin-bottom: 8px;">✏️ Điền từ hoặc số còn thiếu:</p>
+          <input type="text" id="quiz-fillblank-input" class="short-answer-box" style="height: 44px; min-height: 44px; margin-bottom: 8px;" placeholder="Nhập đáp án của em..." />
+          <button id="btn-submit-fillblank" class="btn-primary" style="padding: 10px; width: 100%;">Nộp Đáp Án</button>
+        </div>
+
+        <!-- 5. Vẽ trên Slide (Slide Drawing) -->
+        <div id="quiz-drawing-container" style="display: none;">
+          <p style="font-size: 12px; color: #a5b4fc; margin-bottom: 6px;">🎨 Dùng ngón tay vẽ / khoanh tròn trực tiếp vào bảng dưới:</p>
+          <div class="drawing-wrapper">
+            <canvas id="drawing-canvas"></canvas>
+            <div class="drawing-toolbar">
+              <div class="drawing-colors">
+                <span class="color-dot active" data-color="#ef4444" style="background:#ef4444;"></span>
+                <span class="color-dot" data-color="#3b82f6" style="background:#3b82f6;"></span>
+                <span class="color-dot" data-color="#10b981" style="background:#10b981;"></span>
+                <span class="color-dot" data-color="#fbbf24" style="background:#fbbf24;"></span>
+                <span class="color-dot" data-color="#000000" style="background:#000000;"></span>
+              </div>
+              <button id="btn-clear-drawing" class="btn-quiz-ctrl" style="padding: 3px 8px; font-size: 11px;">🧹 Xóa nét</button>
+            </div>
+          </div>
+          <button id="btn-submit-drawing" class="btn-primary" style="padding: 10px; width: 100%; margin-top: 8px;">Nộp Bài Vẽ Cho Thầy/Cô</button>
+        </div>
+
+        <!-- 6. Chụp ảnh bài làm trong vở (Image Upload) -->
+        <div id="quiz-image-container" style="display: none;">
+          <p style="font-size: 13px; color: #a5b4fc; margin-bottom: 8px;">📸 Chụp ảnh bài làm trong vở của em:</p>
+          <input type="file" id="quiz-photo-input" accept="image/*" capture="environment" style="display: none;" />
+          <div id="quiz-photo-preview-box" style="width: 100%; height: 140px; background: #0f172a; border: 2px dashed #4f46e5; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 8px; overflow: hidden;">
+            <div id="quiz-photo-placeholder" style="text-align: center; color: #94a3b8; font-size: 12px;">
+              <span style="font-size: 28px; display: block; margin-bottom: 4px;">📷</span>
+              Chạm để Chụp Ảnh hoặc Chọn Ảnh từ điện thoại
+            </div>
+            <img id="quiz-photo-preview" style="width: 100%; height: 100%; object-fit: contain; display: none;" />
+          </div>
+          <button id="btn-submit-photo" class="btn-primary" style="padding: 10px; width: 100%;">Gửi Ảnh Cho Thầy/Cô</button>
         </div>
       </div>
 
@@ -165,7 +215,7 @@
   <div id="toast" class="toast"></div>
 
   <!-- Scripts (Cache-busting version 3.5) -->
-  <script src="js/connection.js?v=4.2"></script>
-  <script src="js/app.js?v=4.2"></script>
+  <script src="js/connection.js?v=4.3"></script>
+  <script src="js/app.js?v=4.3"></script>
 </body>
 </html>

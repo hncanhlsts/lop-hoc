@@ -37,6 +37,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const quizOptionsContainer = document.getElementById('quiz-options-container');
   const quizShortContainer = document.getElementById('quiz-short-container');
   const quizShortInput = document.getElementById('quiz-short-input');
+  // ClassPoint Interactive DOM
+  const quizWordcloudContainer = document.getElementById('quiz-wordcloud-container');
+  const quizWordcloudInput = document.getElementById('quiz-wordcloud-input');
+  const btnSubmitWordcloud = document.getElementById('btn-submit-wordcloud');
+
+  const quizFillblankContainer = document.getElementById('quiz-fillblank-container');
+  const quizFillblankInput = document.getElementById('quiz-fillblank-input');
+  const btnSubmitFillblank = document.getElementById('btn-submit-fillblank');
+
+  const quizDrawingContainer = document.getElementById('quiz-drawing-container');
+  const drawingCanvas = document.getElementById('drawing-canvas');
+  const btnClearDrawing = document.getElementById('btn-clear-drawing');
+  const btnSubmitDrawing = document.getElementById('btn-submit-drawing');
+
+  const quizImageContainer = document.getElementById('quiz-image-container');
+  const quizPhotoInput = document.getElementById('quiz-photo-input');
+  const quizPhotoPreview = document.getElementById('quiz-photo-preview');
+  const quizPhotoPreviewBox = document.getElementById('quiz-photo-preview-box');
+  const quizPhotoPlaceholder = document.getElementById('quiz-photo-placeholder');
+  const btnSubmitPhoto = document.getElementById('btn-submit-photo');
+
   const btnSubmitShort = document.getElementById('btn-submit-short');
   const quizSubmittedMsg = document.getElementById('quiz-submitted-msg');
   const quizResultBanner = document.getElementById('quiz-result-banner');
@@ -264,6 +285,130 @@ document.addEventListener('DOMContentLoaded', () => {
   btnDownloadSlide.addEventListener('click', () => {
     showToast('📸 Em có thể chụp ảnh màn hình điện thoại để lưu lại slide nhé!');
   });
+
+  
+  // --- Khởi tạo Bảng Vẽ Cảm Ứng (Slide Drawing Canvas) ---
+  let drawCtx = null;
+  let isDrawing = false;
+  let drawColor = '#ef4444';
+  let lastX = 0;
+  let lastY = 0;
+
+  function initDrawingPad() {
+    if (!drawingCanvas) return;
+    drawingCanvas.width = 460;
+    drawingCanvas.height = 240;
+    drawCtx = drawingCanvas.getContext('2d');
+    drawCtx.fillStyle = '#ffffff';
+    drawCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    drawCtx.lineCap = 'round';
+    drawCtx.lineJoin = 'round';
+    drawCtx.lineWidth = 3.5;
+    drawCtx.strokeStyle = drawColor;
+
+    function getPos(e) {
+      const rect = drawingCanvas.getBoundingClientRect();
+      const scaleX = drawingCanvas.width / rect.width;
+      const scaleY = drawingCanvas.height / rect.height;
+      let clientX = e.clientX;
+      let clientY = e.clientY;
+      if (e.touches && e.touches[0]) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function startDraw(e) {
+      e.preventDefault();
+      isDrawing = true;
+      const pos = getPos(e);
+      lastX = pos.x;
+      lastY = pos.y;
+    }
+
+    function moveDraw(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      drawCtx.beginPath();
+      drawCtx.moveTo(lastX, lastY);
+      drawCtx.lineTo(pos.x, pos.y);
+      drawCtx.stroke();
+      lastX = pos.x;
+      lastY = pos.y;
+    }
+
+    function endDraw(e) {
+      isDrawing = false;
+    }
+
+    drawingCanvas.onmousedown = startDraw;
+    drawingCanvas.onmousemove = moveDraw;
+    window.addEventListener('mouseup', endDraw);
+
+    drawingCanvas.ontouchstart = startDraw;
+    drawingCanvas.ontouchmove = moveDraw;
+    drawingCanvas.ontouchend = endDraw;
+
+    // Chọn màu vẽ
+    document.querySelectorAll('.color-dot').forEach(dot => {
+      dot.onclick = () => {
+        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+        dot.classList.add('active');
+        drawColor = dot.getAttribute('data-color');
+        if (drawCtx) drawCtx.strokeStyle = drawColor;
+      };
+    });
+
+    if (btnClearDrawing) {
+      btnClearDrawing.onclick = () => {
+        if (drawCtx) {
+          drawCtx.fillStyle = '#ffffff';
+          drawCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        }
+      };
+    }
+  }
+
+  // --- Chụp / Tải ảnh bài vở (Image Upload & Compression) ---
+  let compressedPhotoBase64 = null;
+  if (quizPhotoPreviewBox && quizPhotoInput) {
+    quizPhotoPreviewBox.onclick = () => quizPhotoInput.click();
+    quizPhotoInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Nén ảnh xuống tối đa 800px chất lượng 65% để gửi tức thì qua mạng
+          const maxDim = 800;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+            else { w = Math.round((w * maxDim) / h); h = maxDim; }
+          }
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const cx = c.getContext('2d');
+          cx.drawImage(img, 0, 0, w, h);
+          compressedPhotoBase64 = c.toDataURL('image/jpeg', 0.65);
+          if (quizPhotoPreview) {
+            quizPhotoPreview.src = compressedPhotoBase64;
+            quizPhotoPreview.style.display = 'block';
+          }
+          if (quizPhotoPlaceholder) quizPhotoPlaceholder.style.display = 'none';
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    };
+  }
 
   // ==========================================
   // XỬ LÝ CÂU HỎI TƯƠNG TÁC (QUIZ / SHORT / POLL)
