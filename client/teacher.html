@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js?v=3.7"></script>
+  <script src="js/mqtt.min.js?v=4.0"></script>
+  <script src="https://meet.jit.si/external_api.js"></script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -531,7 +532,6 @@
     }
 
     document.getElementById('btn-random-code').addEventListener('click', () => {
-      stopLiveStream();
       classCode = Math.floor(1000 + Math.random() * 9000).toString();
       localStorage.setItem('classlive_teacher_room', classCode);
       updateCodeUI();
@@ -541,7 +541,6 @@
     document.getElementById('btn-custom-code').addEventListener('click', () => {
       const custom = prompt('Nhập mã lớp bạn muốn (Ví dụ: 12A1, TOAN9, 1234):', classCode);
       if (custom && custom.trim()) {
-        stopLiveStream();
         classCode = custom.trim().toUpperCase();
         localStorage.setItem('classlive_teacher_room', classCode);
         updateCodeUI();
@@ -553,6 +552,7 @@
 
     let mqttClient = null;
     let students = new Map(); // studentId -> { name, isHandRaised, stars, currentAnswer, lastSeen }
+    let teacherJitsiApi = null;
 
     let currentQuiz = {
       active: false,
@@ -872,10 +872,8 @@
     };
 
     // ==========================================
-    // CHIA SẺ MÀN HÌNH BÀI GIẢNG QUA VDO.NINJA (100% KHÔNG CẦN TÀI KHOẢN)
+    // CHIA SẺ MÀN HÌNH BÀI GIẢNG QUA LIVE STREAM SFU
     // ==========================================
-    let shareWindow = null;
-
     btnStart.addEventListener('click', () => {
       startLiveStream();
     });
@@ -886,13 +884,7 @@
 
     function startLiveStream() {
       const cleanCode = getCleanCode(classCode);
-      const streamId = 'ClassLive_hncanhlsts_' + cleanCode;
-
-      // URL phát màn hình: Mở cửa sổ riêng để vượt qua rào cản bảo mật iframe của Chrome
-      const pushUrl = `https://vdo.ninja/?push=${streamId}&screenshare=1&screensharecontenthint=detail&autostart=1&meshcast=1&webcam=0&audio=0`;
-      
-      // Mở cửa sổ chọn màn hình chia sẻ
-      shareWindow = window.open(pushUrl, 'ClassLiveShare', 'width=900,height=600');
+      const roomName = `ClassLive-hncanhlsts-${cleanCode}`;
 
       teacherStreamFrame.innerHTML = '';
       teacherStreamFrame.style.display = 'block';
@@ -905,31 +897,65 @@
       statusDot.classList.add('active');
       statusText.textContent = `🟢 ĐANG PHÁT LIVE STREAM (MÃ: ${classCode})`;
 
-      // Hiển thị khung giám sát thực tế (học sinh thấy gì thầy cô thấy đó)
-      const monitorUrl = `https://vdo.ninja/?view=${streamId}&cleanviewer=1&noaudio=1`;
-      teacherStreamFrame.innerHTML = `
-        <iframe src="${monitorUrl}" 
-                allow="autoplay; fullscreen" 
-                style="width: 100%; height: 420px; border: none; border-radius: 8px; display: block; background: #000;">
-        </iframe>
-        <div style="margin-top: 8px; text-align: center; font-size: 13px; color: #a5b4fc;">
-          📺 <b>Màn hình giám sát:</b> Khung trên đang phản chiếu đúng những gì học sinh nhìn thấy.
-          <br>
-          <button id="btn-reopen-share" style="margin-top: 6px; background: #3b82f6; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-            🔄 Bấm vào đây nếu chưa thấy hộp thoại chọn cửa sổ PowerPoint
-          </button>
-        </div>
-      `;
+      const domain = "meet.jit.si";
+      const options = {
+        roomName: roomName,
+        width: "100%",
+        height: "440px",
+        parentNode: teacherStreamFrame,
+        userInfo: {
+          displayName: "Thầy/Cô Giáo (Host)"
+        },
+        configOverwrite: {
+          startWithAudioMuted: true,
+          startWithVideoMuted: true,
+          prejoinPageEnabled: false,
+          disableDeepLinking: true,
+          enableWelcomePage: false,
+          defaultRemoteDisplayName: 'Học sinh'
+        },
+        interfaceConfigOverwrite: {
+          TOOLBAR_BUTTONS: [
+            'desktop', 'microphone', 'camera', 'fullscreen',
+            'fodeviceselection', 'hangup', 'tileview'
+          ],
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+        }
+      };
 
-      document.getElementById('btn-reopen-share').addEventListener('click', () => {
-        shareWindow = window.open(pushUrl, 'ClassLiveShare', 'width=900,height=600');
-      });
+      try {
+        if (typeof JitsiMeetExternalAPI !== 'undefined') {
+          teacherJitsiApi = new JitsiMeetExternalAPI(domain, options);
+          teacherJitsiApi.addEventListener('videoConferenceJoined', () => {
+            console.log('[GV] Đã vào phòng Live Stream, tự động mở chia sẻ màn hình...');
+            setTimeout(() => {
+              if (teacherJitsiApi) {
+                teacherJitsiApi.executeCommand('toggleShareScreen');
+              }
+            }, 800);
+          });
+          teacherJitsiApi.addEventListener('readyToClose', () => {
+            stopLiveStream();
+          });
+        } else {
+          teacherStreamFrame.innerHTML = `<iframe src="https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false" style="width:100%;height:440px;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
+        }
+      } catch (err) {
+        console.error('Lỗi khởi tạo Jitsi:', err);
+        teacherStreamFrame.innerHTML = `<iframe src="https://meet.jit.si/${roomName}#config.prejoinPageEnabled=false" style="width:100%;height:440px;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
+      }
     }
 
     function stopLiveStream() {
-      if (shareWindow && !shareWindow.closed) {
-        shareWindow.close();
-        shareWindow = null;
+      if (teacherJitsiApi) {
+        try {
+          teacherJitsiApi.dispose();
+        } catch (e) {
+          console.error(e);
+        }
+        teacherJitsiApi = null;
       }
       teacherStreamFrame.innerHTML = '';
       teacherStreamFrame.style.display = 'none';

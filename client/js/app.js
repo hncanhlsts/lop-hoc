@@ -47,27 +47,50 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentQuiz = null;
   let isHandRaised = false;
   let accumulatedStars = 0;
+  let jitsiApi = null;
 
   function initLiveStreamFrame(roomCode, studentName) {
     const container = document.getElementById('live-stream-frame');
     if (!container) return;
     container.innerHTML = '';
 
-    const cleanCode = (roomCode || '1234').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const streamId = 'ClassLive_hncanhlsts_' + cleanCode;
+    const cleanRoom = 'ClassLive-hncanhlsts-' + roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    // VDO.Ninja Viewer: 100% không tài khoản, không login, không giao diện thừa
-    const streamUrl = `https://vdo.ninja/?view=${streamId}&autoplay=1&cleanviewer=1&noaudio=1`;
+    const domain = "meet.jit.si";
+    const options = {
+      roomName: cleanRoom,
+      width: "100%",
+      height: "100%",
+      parentNode: container,
+      userInfo: {
+        displayName: studentName
+      },
+      configOverwrite: {
+        startWithAudioMuted: true,
+        startWithVideoMuted: true,
+        prejoinPageEnabled: false,
+        disableDeepLinking: true,
+        enableWelcomePage: false,
+        readOnlyName: true,
+        defaultRemoteDisplayName: 'Thầy/Cô Giáo'
+      },
+      interfaceConfigOverwrite: {
+        TOOLBAR_BUTTONS: ['fullscreen', 'tileview', 'videoquality'],
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
+        DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+      }
+    };
 
-    const iframe = document.createElement('iframe');
-    iframe.src = streamUrl;
-    iframe.allow = 'autoplay; fullscreen; picture-in-picture';
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = 'none';
-    iframe.style.display = 'block';
-
-    container.appendChild(iframe);
+    try {
+      if (typeof JitsiMeetExternalAPI !== 'undefined') {
+        jitsiApi = new JitsiMeetExternalAPI(domain, options);
+      } else {
+        container.innerHTML = `<iframe src="https://meet.jit.si/${cleanRoom}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
+      }
+    } catch (e) {
+      container.innerHTML = `<iframe src="https://meet.jit.si/${cleanRoom}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
+    }
   }
 
   // --- Tự động điền Mã lớp nếu học sinh quét mã QR có link kèm `?code=...` ---
