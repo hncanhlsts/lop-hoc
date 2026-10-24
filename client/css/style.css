@@ -1442,3 +1442,10 @@ body.mini-remote-mode .ppt-helper-box {
   background: #ef4444;
   color: #fff;
 }
+
+@keyframes floatUpFade {
+  0% { opacity: 0; transform: translateY(10px) scale(0.85); }
+  15% { opacity: 1; transform: translateY(0) scale(1.05); }
+  75% { opacity: 1; transform: translateY(-70px) scale(1); }
+  100% { opacity: 0; transform: translateY(-110px) scale(0.9); }
+}

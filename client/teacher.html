@@ -682,6 +682,35 @@
       return (code || '1234').toLowerCase().replace(/[^a-z0-9]/g, '');
     }
 
+    
+    // Hiển thị bóng bay cảm xúc học sinh nổi lên trên màn hình Giáo viên
+    function showFloatingReaction(emoji, studentName) {
+      const box = document.getElementById('preview-box');
+      if (!box) return;
+      const bubble = document.createElement('div');
+      bubble.className = 'floating-reaction-bubble';
+      bubble.innerHTML = `<span style="font-size:20px;">${emoji}</span> <span style="font-size:11px; color:#cbd5e1; font-weight:600;">${studentName || ''}</span>`;
+      bubble.style.cssText = `
+        position: absolute;
+        bottom: 20px;
+        right: ${20 + Math.random() * 80}px;
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(255,255,255,0.2);
+        padding: 5px 10px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #fff;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+        z-index: 50;
+        pointer-events: none;
+        animation: floatUpFade 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      `;
+      box.appendChild(bubble);
+      setTimeout(() => { if (bubble.parentNode) bubble.parentNode.removeChild(bubble); }, 2500);
+    }
+  
     function updateCodeUI() {
       document.getElementById('header-class-code').textContent = classCode;
       document.getElementById('sidebar-class-code').textContent = classCode;
@@ -997,17 +1026,35 @@
 
     // Laser Pointer di chuyển theo chuột trên khung slide
     const previewBoxEl = document.getElementById('preview-box');
+    let lastLaserSend = 0;
     if (previewBoxEl && laserPointerDot) {
       previewBoxEl.addEventListener('mousemove', (e) => {
         if (currentTool === 'laser') {
           laserPointerDot.style.display = 'block';
           const rect = previewBoxEl.getBoundingClientRect();
-          laserPointerDot.style.left = (e.clientX - rect.left) + 'px';
-          laserPointerDot.style.top = (e.clientY - rect.top) + 'px';
+          const posX = e.clientX - rect.left;
+          const posY = e.clientY - rect.top;
+          laserPointerDot.style.left = posX + 'px';
+          laserPointerDot.style.top = posY + 'px';
+
+          const now = Date.now();
+          if (now - lastLaserSend > 40 && mqttClient && mqttClient.connected) {
+            lastLaserSend = now;
+            const cleanCode = getCleanCode(classCode);
+            mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/laser`, JSON.stringify({
+              x: Math.max(0, Math.min(1, posX / rect.width)),
+              y: Math.max(0, Math.min(1, posY / rect.height)),
+              active: true
+            }), { qos: 0 });
+          }
         }
       });
       previewBoxEl.addEventListener('mouseleave', () => {
         laserPointerDot.style.display = 'none';
+        if (currentTool === 'laser' && mqttClient && mqttClient.connected) {
+          const cleanCode = getCleanCode(classCode);
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/laser`, JSON.stringify({ active: false }), { qos: 0 });
+        }
       });
     }
 
@@ -1044,7 +1091,18 @@
         annotLastX = pos.x;
         annotLastY = pos.y;
       });
-      window.addEventListener('mouseup', () => { isAnnotDrawing = false; });
+      window.addEventListener('mouseup', () => {
+        if (isAnnotDrawing) {
+          isAnnotDrawing = false;
+          captureAndSendSlide(true);
+        }
+      });
+      window.addEventListener('touchend', () => {
+        if (isAnnotDrawing) {
+          isAnnotDrawing = false;
+          captureAndSendSlide(true);
+        }
+      });
     }
 
     // Thu gọn thanh công cụ
@@ -1058,7 +1116,8 @@
     if (cpBtnNext) {
       cpBtnNext.onclick = () => {
         currentSlideIndex++;
-        showToast('👉 Đã chuyển slide tiếp theo');
+        showToast('👉 Đã chuyển slide tiếp theo (' + currentSlideIndex + ')');
+        captureAndSendSlide(true);
       };
     }
     if (cpBtnPrev) {
@@ -1640,7 +1699,8 @@
         const requestTopic = `classlive/hncanhlsts/${cleanCode}/request_slide`;
         const remoteCmdTopic = `classlive/hncanhlsts/${cleanCode}/remote_cmd`;
         const quizSyncTopic = `classlive/hncanhlsts/${cleanCode}/quiz`;
-        mqttClient.subscribe([studentTopic, answerTopic, requestTopic, remoteCmdTopic, quizSyncTopic], { qos: 0 });
+        const reactionTopic = `classlive/hncanhlsts/${cleanCode}/reaction`;
+        mqttClient.subscribe([studentTopic, answerTopic, requestTopic, remoteCmdTopic, quizSyncTopic, reactionTopic], { qos: 0 });
         // Đồng bộ trạng thái phiên tới học sinh & xóa câu hỏi cũ còn đọng
         broadcastSessionMode(mediaStream ? 'smart' : (teacherJitsiApi ? 'live' : 'idle'), !!(mediaStream || teacherJitsiApi));
         if (!currentQuiz.active) {
@@ -1738,6 +1798,8 @@
               updateStudentUI();
             }
 
+          } else if (topic.includes('/reaction')) {
+            showFloatingReaction(data.reaction, data.name);
           } else if (topic.includes('/request_slide')) {
             // Học sinh mới vào yêu cầu lấy slide hiện tại
             broadcastSessionMode(mediaStream ? 'smart' : (teacherJitsiApi ? 'live' : 'idle'), !!(mediaStream || teacherJitsiApi));

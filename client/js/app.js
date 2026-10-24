@@ -325,6 +325,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (waitingCard) waitingCard.style.display = 'none';
       showToast('🟢 Đang xem Live Stream bài giảng từ Thầy/Cô!');
     },
+    onLaserMove: (laserData) => {
+      const laserDot = document.getElementById('student-laser-dot');
+      if (!laserDot || !currentSlideImg) return;
+      if (!laserData || !laserData.active) {
+        laserDot.style.display = 'none';
+        return;
+      }
+      const imgRect = currentSlideImg.getBoundingClientRect();
+      const parentRect = currentSlideImg.parentElement.getBoundingClientRect();
+      if (imgRect.width > 0 && imgRect.height > 0) {
+        laserDot.style.display = 'block';
+        const left = (imgRect.left - parentRect.left) + laserData.x * imgRect.width;
+        const top = (imgRect.top - parentRect.top) + laserData.y * imgRect.height;
+        laserDot.style.left = left + 'px';
+        laserDot.style.top = top + 'px';
+      }
+    },
     onSlideUpdate: (slideData) => {
       if (!slideData) return;
       if (slideData.stopped || !slideData.imageUrl) {
@@ -468,7 +485,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Chụp / Lưu bài giảng ---
   btnDownloadSlide.addEventListener('click', () => {
-    showToast('📸 Em có thể chụp ảnh màn hình điện thoại để lưu lại slide nhé!');
+    if (currentSlideImg && currentSlideImg.src && currentSlideImg.style.display !== 'none') {
+      const a = document.createElement('a');
+      a.href = currentSlideImg.src;
+      a.download = `Slide_${currentRoomCode || 'LopHoc'}_${Date.now()}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('📥 Đã tải hình ảnh bài giảng về máy!');
+    } else {
+      showToast('📸 Chưa có hình ảnh slide để tải về!');
+    }
   });
 
   

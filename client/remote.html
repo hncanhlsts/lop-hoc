@@ -738,6 +738,16 @@
       spin();
     };
 
+    window.awardStudentDirect = function(studentId) {
+      const s = students.get(studentId);
+      if (s) s.stars = (s.stars || 0) + 1;
+      mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/star/${studentId}`, JSON.stringify({
+        stars: (s ? s.stars : 1),
+        message: '🌟 Thầy/Cô vừa tặng bạn 1 Ngôi Sao vì câu trả lời xuất sắc!'
+      }), { qos: 0 });
+      alert('⭐ Đã tặng sao trực tiếp cho học sinh!');
+    };
+
     btnRemoteAwardStar.onclick = () => {
       if (luckyStudentId) {
         const s = students.get(luckyStudentId);

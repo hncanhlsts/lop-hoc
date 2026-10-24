@@ -31,6 +31,7 @@ class SlideConnection {
     this.onQuizReveal = options.onQuizReveal || (() => {});
     this.onStarAward = options.onStarAward || (() => {});
     this.onKick = options.onKick || (() => {});
+    this.onLaserMove = options.onLaserMove || (() => {});
   }
 
   connect(roomCode, studentName, isDemo = false) {
@@ -77,6 +78,7 @@ class SlideConnection {
           `${baseTopic}/session_mode`,
           `${baseTopic}/quiz`,
           `${baseTopic}/quiz_reveal`,
+          `${baseTopic}/laser`,
           `${baseTopic}/star/${this.studentId}`,
           `${baseTopic}/kick/${this.studentId}`
         ], { qos: 0 });
@@ -143,6 +145,8 @@ class SlideConnection {
       } else if (data.action === 'dismiss') {
         this.onQuizDismiss(data);
       }
+    } else if (topic.endsWith('/laser')) {
+      this.onLaserMove(data);
     } else if (topic.endsWith('/quiz_reveal')) {
       this.onQuizReveal(data);
     } else if (topic.includes('/star/')) {
@@ -168,6 +172,17 @@ class SlideConnection {
     const topic = `classlive/hncanhlsts/${this.roomCode}/request_slide`;
     this.client.publish(topic, JSON.stringify({
       from: this.studentId,
+      time: Date.now()
+    }), { qos: 0 });
+  }
+
+  sendReaction(reaction) {
+    if (!this.client || !this.isConnected) return;
+    const topic = `classlive/hncanhlsts/${this.roomCode}/reaction`;
+    this.client.publish(topic, JSON.stringify({
+      id: this.studentId,
+      name: this.studentName,
+      reaction: reaction,
       time: Date.now()
     }), { qos: 0 });
   }
