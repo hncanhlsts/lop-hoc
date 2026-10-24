@@ -90,10 +90,17 @@ class SlideConnection {
       this.isConnected = true;
       this.onStatusChange('connected', `🟢 Đang xem trực tiếp • Lớp: ${this.roomCode.toUpperCase()}`);
 
-      this.conn.send({
-        type: 'JOIN',
-        name: this.studentName
-      });
+      const sendJoin = () => {
+        if (this.conn && this.conn.open) {
+          this.conn.send({
+            type: 'JOIN',
+            name: this.studentName
+          });
+        }
+      };
+      sendJoin();
+      setTimeout(sendJoin, 500);
+      setTimeout(sendJoin, 1500);
     });
 
     this.conn.on('data', (data) => {

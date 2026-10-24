@@ -345,12 +345,9 @@
       return Math.floor(1000 + Math.random() * 9000).toString();
     }
 
-    // Mỗi tab/phiên dạy của GV sẽ tự có mã ngẫu nhiên riêng biệt, không ai trùng ai
-    let classCode = sessionStorage.getItem('classlive_teacher_room');
-    if (!classCode) {
-      classCode = generateUniqueCode();
-      sessionStorage.setItem('classlive_teacher_room', classCode);
-    }
+    // Mã mặc định cố định là 1234 để Thầy/Cô và Học sinh luôn khớp nhau ngay từ đầu.
+    // Nếu có 2 GV cùng dạy một lúc thì GV thứ hai mới cần bấm "Đổi mã" sang mã khác.
+    let classCode = localStorage.getItem('classlive_teacher_room') || '1234';
 
     function getRoomPeerId(code) {
       return `hncanhlsts-room-${code.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
@@ -369,7 +366,7 @@
     // Đổi sang mã ngẫu nhiên khác
     document.getElementById('btn-random-code').addEventListener('click', () => {
       classCode = generateUniqueCode();
-      sessionStorage.setItem('classlive_teacher_room', classCode);
+      localStorage.setItem('classlive_teacher_room', classCode);
       updateCodeUI();
       reconnectPeer();
     });
@@ -379,7 +376,7 @@
       const custom = prompt('Nhập mã lớp bạn muốn (Ví dụ: 12A1, TOAN9, 6868):', classCode);
       if (custom && custom.trim()) {
         classCode = custom.trim().toUpperCase();
-        sessionStorage.setItem('classlive_teacher_room', classCode);
+        localStorage.setItem('classlive_teacher_room', classCode);
         updateCodeUI();
         reconnectPeer();
       }
