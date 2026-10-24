@@ -458,6 +458,7 @@ html, body {
    POPUP CÂU HỎI TRẮC NGHIỆM (QUIZ MODAL)
    ========================================== */
 .quiz-overlay {
+  display: none;
   position: absolute;
   bottom: 74px;
   left: 12px;
@@ -469,11 +470,14 @@ html, body {
   padding: 16px;
   box-shadow: 0 20px 30px rgba(0, 0, 0, 0.6);
   z-index: 150;
-  transform: translateY(120%);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.25s ease;
+  transform: translateY(30px);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.25s ease;
 }
 
 .quiz-overlay.open {
+  display: block !important;
+  opacity: 1;
   transform: translateY(0);
 }
 
@@ -515,6 +519,7 @@ html, body {
 /* Tối ưu xoay ngang điện thoại (Landscape Mode) */
 @media (max-height: 520px) and (orientation: landscape) {
   .quiz-overlay {
+    display: none;
     position: fixed;
     top: 52px;
     bottom: 12px;
@@ -523,10 +528,13 @@ html, body {
     width: 290px;
     max-height: calc(100vh - 64px);
     overflow-y: auto;
-    transform: translateX(120%);
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateX(30px);
+    opacity: 0;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .quiz-overlay.open {
+    display: block !important;
+    opacity: 1;
     transform: translateX(0);
   }
   .quiz-grid {
@@ -1183,4 +1191,58 @@ html, body {
   background: #0f172a;
   border: 1px solid var(--border);
   font-size: 13.5px;
+}
+
+/* ==========================================
+   CHẾ ĐỘ MINI REMOTE / ĐIỀU KHIỂN NỔI
+   ========================================== */
+body.mini-remote-mode {
+  padding: 6px !important;
+  background: #090d16 !important;
+  overflow-x: hidden;
+}
+body.mini-remote-mode header {
+  padding: 6px 10px !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  align-items: stretch !important;
+}
+body.mini-remote-mode .brand {
+  font-size: 13px !important;
+  text-align: center;
+}
+body.mini-remote-mode .class-code-badge {
+  justify-content: center !important;
+  font-size: 13px !important;
+  padding: 4px 8px !important;
+}
+body.mini-remote-mode .top-controls {
+  padding: 8px 10px !important;
+  gap: 8px !important;
+}
+body.mini-remote-mode .container {
+  grid-template-columns: 1fr !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+body.mini-remote-mode .panel {
+  padding: 8px !important;
+  border: none !important;
+  background: transparent !important;
+}
+body.mini-remote-mode .interaction-card {
+  padding: 10px !important;
+  border-radius: 10px !important;
+}
+body.mini-remote-mode .type-tabs {
+  gap: 4px !important;
+}
+body.mini-remote-mode .type-tab {
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+}
+body.mini-remote-mode #btn-open-floating-remote,
+body.mini-remote-mode #btn-open-mobile-remote,
+body.mini-remote-mode .ppt-helper-box {
+  display: none !important;
 }

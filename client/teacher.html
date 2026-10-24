@@ -407,12 +407,19 @@
             <option value="live">📽️ Live Stream Trực Tiếp (Jitsi Meet)</option>
           </select>
         </div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <button id="btn-start" class="btn btn-start">
             <span>🟢 Bắt Đầu Trình Chiếu</span>
           </button>
           <button id="btn-stop" class="btn btn-stop" style="display: none;">
             <span>⏹️ Dừng Trình Chiếu</span>
+          </button>
+          <div style="height: 28px; width: 1px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
+          <button id="btn-open-floating-remote" class="btn" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #fff; font-weight: 700; border: none; padding: 9px 14px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);" title="Mở cửa sổ nhỏ nổi trên PowerPoint để bấm phát câu hỏi">
+            <span>🪟 Remote Nổi (Chiếu PPT)</span>
+          </button>
+          <button id="btn-open-mobile-remote" class="btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: #fff; font-weight: 700; border: none; padding: 9px 14px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);" title="Quét mã QR để biến điện thoại thành remote phát câu hỏi từ xa">
+            <span>📱 Remote Điện Thoại (QR)</span>
           </button>
         </div>
       </div>
@@ -466,16 +473,28 @@
         </div>
 
         <!-- Nút hành động giao câu hỏi -->
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <button id="btn-launch-quiz" class="btn btn-primary" style="padding: 10px 18px; font-size: 14px;">
-            🚀 Bắt Đầu Câu Hỏi Cho Học Sinh
+        <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center;">
+          <button id="btn-launch-quiz" class="btn btn-primary" style="padding: 12px 22px; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <span>🚀 Bắt Đầu Phát: <b id="launch-type-label">Trắc Nghiệm (A,B,C,D)</b> Cho Học Sinh</span>
           </button>
-          <button id="btn-end-quiz" class="btn btn-stop" style="display: none; padding: 10px 18px; font-size: 14px;">
+          <button id="btn-end-quiz" class="btn btn-stop" style="display: none; padding: 12px 18px; font-size: 14px;">
             ⏹️ Dừng Nhận Bài
           </button>
-          <button id="btn-reveal-quiz" class="btn btn-warning" style="display: none; padding: 10px 18px; font-size: 14px;">
+          <button id="btn-reveal-quiz" class="btn btn-warning" style="display: none; padding: 12px 18px; font-size: 14px;">
             🎉 Công Bố Đáp Án & Thưởng Sao ⭐
           </button>
+          <button id="btn-reset-quiz" class="btn btn-secondary" style="display: none; padding: 12px 18px; font-size: 14px; background: #475569; color: #fff; border: none; border-radius: 8px; cursor: pointer;">
+            🔄 Đặt Lại / Tạo Câu Mới
+          </button>
+        </div>
+
+        <!-- Hướng dẫn điều khiển khi đang chiếu PowerPoint -->
+        <div class="ppt-helper-box" style="margin-top: 12px; padding: 9px 14px; background: rgba(99, 102, 241, 0.12); border: 1.5px dashed rgba(99, 102, 241, 0.45); border-radius: 8px; font-size: 13px; color: #cbd5e1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <span>💡 <b>Khi đang chiếu PowerPoint:</b> Thầy/Cô mở <b>Remote Nổi</b> để góc màn hình hoặc quét <b>Remote Điện Thoại</b> để phát câu hỏi mà không cần thoát PowerPoint.</span>
+          <div style="display: flex; gap: 6px;">
+            <button onclick="document.getElementById('btn-open-floating-remote').click()" style="background: #4f46e5; color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer;">Mở Remote Nổi 🪟</button>
+            <button onclick="document.getElementById('btn-open-mobile-remote').click()" style="background: #7c3aed; color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer;">Mở QR Điện Thoại 📱</button>
+          </div>
         </div>
 
         <!-- Khu vực Thống kê & Biểu đồ kết quả trực tiếp -->
@@ -571,7 +590,8 @@
       'wss://broker.emqx.io:8084/mqtt'
     ];
     let brokerIndex = 0;
-    let classCode = localStorage.getItem('classlive_teacher_room') || '1234';
+    const urlParamsInit = new URLSearchParams(window.location.search);
+    let classCode = (urlParamsInit.get('code') || localStorage.getItem('classlive_teacher_room') || '1234').toUpperCase();
 
     function getCleanCode(code) {
       return (code || '1234').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -862,6 +882,11 @@
         typeTabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         currentQuiz.type = tab.dataset.type;
+        const launchLabel = document.getElementById('launch-type-label');
+        if (launchLabel) {
+          const names = { mcq: 'Trắc Nghiệm', tf: 'Đúng / Sai', wordcloud: 'Đám Mây Từ', short: 'Trả Lời Ngắn', fillblank: 'Điền Chỗ Trống', drawing: 'Vẽ Trên Slide', image: 'Chụp Ảnh Bài' };
+          launchLabel.textContent = names[currentQuiz.type] || currentQuiz.type;
+        }
         setupAnswerSelector();
       });
     });
@@ -903,6 +928,21 @@
 
     setupAnswerSelector();
 
+    // --- ĐỒNG BỘ PHIÊN PHÁT SÓNG CHO TOÀN BỘ HỌC SINH ---
+    function broadcastSessionMode(mode, active = true) {
+      const cleanCode = getCleanCode(classCode);
+      if (mqttClient && mqttClient.connected) {
+        const payload = {
+          active: active,
+          mode: mode, // 'smart' | 'live' | 'idle'
+          roomName: `ClassLive-hncanhlsts-${cleanCode}`,
+          timestamp: Date.now()
+        };
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/session_mode`, JSON.stringify(payload), { qos: 0, retain: true });
+        console.log(`[GV] Đã đồng bộ trạng thái phát: ${mode} (active: ${active})`);
+      }
+    }
+
     // ==========================================
     // KHỞI TẠO MẠNG MQTT SIÊU TỐC
     // ==========================================
@@ -937,6 +977,11 @@
         const answerTopic = `classlive/hncanhlsts/${cleanCode}/answer/+`;
         const requestTopic = `classlive/hncanhlsts/${cleanCode}/request_slide`;
         mqttClient.subscribe([studentTopic, answerTopic, requestTopic], { qos: 0 });
+        // Đồng bộ trạng thái phiên tới học sinh & xóa câu hỏi cũ còn đọng
+        broadcastSessionMode(mediaStream ? 'smart' : (teacherJitsiApi ? 'live' : 'idle'), !!(mediaStream || teacherJitsiApi));
+        if (!currentQuiz.active) {
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify({ action: 'dismiss' }), { qos: 0, retain: true });
+        }
       });
 
       mqttClient.on('message', (topic, message) => {
@@ -974,6 +1019,7 @@
 
           } else if (topic.includes(`/request_slide`)) {
             // Học sinh mới vào yêu cầu lấy slide hiện tại
+            broadcastSessionMode(mediaStream ? 'smart' : (teacherJitsiApi ? 'live' : 'idle'), !!(mediaStream || teacherJitsiApi));
             if (lastSentImage && mqttClient && mqttClient.connected) {
               mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
                 imageUrl: lastSentImage,
@@ -1043,9 +1089,34 @@
       mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify(payload), { qos: 0, retain: true });
     });
 
+    const btnResetQuiz = document.getElementById('btn-reset-quiz');
+    if (btnResetQuiz) {
+      btnResetQuiz.addEventListener('click', () => {
+        currentQuiz.active = false;
+        currentQuiz.answers = {};
+        students.forEach(s => { s.currentAnswer = null; });
+
+        btnLaunchQuiz.style.display = 'inline-flex';
+        btnEndQuiz.style.display = 'none';
+        btnRevealQuiz.style.display = 'none';
+        btnResetQuiz.style.display = 'none';
+
+        quizBadgeStatus.textContent = 'Chưa kích hoạt';
+        quizBadgeStatus.style.color = 'var(--text-muted)';
+        statsContainer.style.display = 'none';
+
+        const cleanCode = getCleanCode(classCode);
+        if (mqttClient && mqttClient.connected) {
+          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/quiz`, JSON.stringify({ action: 'dismiss' }), { qos: 0, retain: true });
+        }
+        updateStudentUI();
+      });
+    }
+
     btnEndQuiz.addEventListener('click', () => {
       currentQuiz.active = false;
       btnEndQuiz.style.display = 'none';
+      if (btnResetQuiz) btnResetQuiz.style.display = 'inline-flex';
       quizBadgeStatus.textContent = '⏹️ Đã dừng nhận bài';
       quizBadgeStatus.style.color = '#f59e0b';
 
@@ -1322,6 +1393,7 @@
 
       statusDot.classList.remove('active');
       statusText.textContent = `Đã dừng phát sóng (Mã: ${classCode})`;
+      broadcastSessionMode('idle', false);
     }
 
     // --- CHẾ ĐỘ 1: CHỤP SLIDE SIÊU NÉT (SMART DIFF) ---
@@ -1344,6 +1416,7 @@
 
         statusDot.classList.add('active');
         statusText.textContent = `⚡ ĐANG PHÁT SLIDE SIÊU NÉT (MÃ: ${classCode})`;
+        broadcastSessionMode('smart', true);
 
         mediaStream.getVideoTracks()[0].onended = () => { stopBroadcasting(); };
 
@@ -1429,6 +1502,7 @@
 
       statusDot.classList.add('active');
       statusText.textContent = `🟢 ĐANG PHÁT LIVE STREAM (MÃ: ${classCode})`;
+        broadcastSessionMode('live', true);
 
       const domain = "meet.jit.si";
       const options = {

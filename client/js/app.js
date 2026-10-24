@@ -65,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Toast
   const toastEl = document.getElementById('toast');
 
+  let currentRoomCode = "";
+  let currentStudentName = "";
+  let currentSessionMode = null;
   let currentQuiz = null;
   let isHandRaised = false;
   let accumulatedStars = 0;
@@ -111,6 +114,64 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (e) {
       container.innerHTML = `<iframe src="https://meet.jit.si/${cleanRoom}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true" style="width:100%;height:100%;border:none;" allow="camera; microphone; fullscreen; display-capture"></iframe>`;
+    }
+  }
+
+  function destroyLiveStreamFrame() {
+    if (jitsiApi) {
+      try { jitsiApi.dispose(); } catch (e) {}
+      jitsiApi = null;
+    }
+    const container = document.getElementById('live-stream-frame');
+    if (container) {
+      container.innerHTML = '';
+      container.style.display = 'none';
+    }
+  }
+
+  function closeAndResetQuiz() {
+    currentQuiz = null;
+    if (quizOverlay) {
+      quizOverlay.classList.remove('open');
+      quizOverlay.style.display = 'none';
+    }
+    if (quizSubmittedMsg) quizSubmittedMsg.style.display = 'none';
+    if (quizResultBanner) quizResultBanner.style.display = 'none';
+    if (quizContentArea) quizContentArea.style.display = 'block';
+  }
+
+  function handleSessionMode(sessionData) {
+    currentSessionMode = sessionData;
+    console.log('[Học sinh] Nhận trạng thái phát sóng từ GV:', sessionData);
+
+    if (sessionData && sessionData.active) {
+      if (sessionData.mode === 'smart') {
+        // Chế độ Slide Siêu Nét: tắt Jitsi, chỉ hiện ảnh slide
+        destroyLiveStreamFrame();
+        if (waitingCard) waitingCard.style.display = 'none';
+        if (currentSlideImg) currentSlideImg.style.display = 'block';
+        if (syncStatusText) syncStatusText.textContent = '⚡ Xem Slide Siêu Nét';
+      } else if (sessionData.mode === 'live') {
+        // Chế độ Live Stream: khởi tạo Jitsi
+        if (currentSlideImg) currentSlideImg.style.display = 'none';
+        if (waitingCard) waitingCard.style.display = 'none';
+        const liveFrame = document.getElementById('live-stream-frame');
+        if (liveFrame) {
+          liveFrame.style.display = 'flex';
+          initLiveStreamFrame(currentRoomCode || '1234', currentStudentName || 'Học sinh');
+        }
+        if (syncStatusText) syncStatusText.textContent = '📽️ Xem Live Stream Trực Tiếp';
+      }
+    } else {
+      // Giáo viên dừng hoặc chưa phát
+      destroyLiveStreamFrame();
+      if (currentSlideImg) currentSlideImg.style.display = 'none';
+      if (waitingCard) {
+        if (waitingTitle) waitingTitle.textContent = `🟢 Đã vào phòng học [${currentRoomCode || '1234'}]`;
+        if (waitingDesc) waitingDesc.textContent = 'Đang chờ Thầy/Cô bắt đầu phát sóng bài giảng...';
+        waitingCard.style.display = 'flex';
+      }
+      if (syncStatusText) syncStatusText.textContent = 'Chờ Thầy/Cô phát bài';
     }
   }
 
@@ -171,30 +232,42 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Khởi tạo bộ kết nối thời gian thực ---
   const connection = new SlideConnection({
     onStatusChange: (status, message) => {
-      syncStatusText.textContent = message;
+      if (syncStatusText) syncStatusText.textContent = message;
       if (waitingTitle && (status === 'connecting' || status === 'waiting' || status === 'disconnected' || status === 'error')) {
         waitingTitle.textContent = message;
       }
+    },
+    onSessionModeChange: (sessionData) => {
+      handleSessionMode(sessionData);
     },
     onStreamUpdate: (stream) => {
       if (waitingCard) waitingCard.style.display = 'none';
       showToast('🟢 Đang xem Live Stream bài giảng từ Thầy/Cô!');
     },
     onSlideUpdate: (slideData) => {
+      if (currentSlideImg) {
+        currentSlideImg.src = slideData.imageUrl;
+        currentSlideImg.style.display = 'block';
+      }
+      destroyLiveStreamFrame();
       if (waitingCard) waitingCard.style.display = 'none';
       if (slideCounter) {
-        slideCounter.textContent = `${slideData.slideNumber}/${slideData.totalSlides}`;
+        slideCounter.textContent = `${slideData.slideNumber || 1}/${slideData.totalSlides || 1}`;
       }
     },
     onQuizStart: (quizData) => {
       showQuiz(quizData);
     },
     onQuizEnd: () => {
-      if (quizOverlay.classList.contains('open') && quizSubmittedMsg.style.display === 'none') {
+      if (quizOverlay && quizOverlay.classList.contains('open') && quizSubmittedMsg && quizSubmittedMsg.style.display === 'none') {
         quizSubmittedMsg.style.display = 'block';
         quizSubmittedMsg.innerHTML = '⏹️ Thầy/Cô đã dừng nhận câu trả lời.';
-        quizContentArea.style.display = 'none';
+        if (quizContentArea) quizContentArea.style.display = 'none';
       }
+    },
+    onQuizDismiss: () => {
+      closeAndResetQuiz();
+      showToast('Thầy/Cô đã đóng câu hỏi.');
     },
     onQuizReveal: (resultData) => {
       showQuizResult(resultData);
@@ -203,6 +276,10 @@ document.addEventListener('DOMContentLoaded', () => {
       accumulatedStars = starData.stars;
       if (myStars) myStars.textContent = `⭐ ${accumulatedStars}`;
       showToast(starData.message || '🌟 Thầy/Cô vừa tặng bạn 1 Ngôi Sao!');
+    },
+    onKick: (kickData) => {
+      alert(kickData && kickData.reason ? kickData.reason : 'Bạn đã bị mời ra khỏi phòng học.');
+      window.location.reload();
     }
   });
 
@@ -223,13 +300,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function enterClassroom(roomCode, name, isDemo) {
+    currentRoomCode = roomCode;
+    currentStudentName = name;
     classBadge.textContent = roomCode;
     joinScreen.classList.add('hidden');
     viewerScreen.classList.remove('hidden');
 
-    if (!isDemo) {
-      initLiveStreamFrame(roomCode, name);
-    } else if (waitingCard) {
+    // Không tự động kết nối Jitsi! Đợi tín hiệu từ Giáo viên
+    destroyLiveStreamFrame();
+    if (currentSlideImg) currentSlideImg.style.display = 'none';
+    if (waitingCard) {
+      if (waitingTitle) waitingTitle.textContent = `🟢 Đã vào phòng học [${roomCode}]`;
+      if (waitingDesc) waitingDesc.textContent = 'Đang chờ Thầy/Cô bắt đầu phát sóng bài giảng...';
+      waitingCard.style.display = 'flex';
+    }
+    closeAndResetQuiz();
+
+    if (isDemo && waitingCard) {
       waitingCard.style.display = 'none';
     }
 
@@ -414,6 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // XỬ LÝ CÂU HỎI TƯƠNG TÁC (QUIZ / SHORT / POLL)
   // ==========================================
   function showQuiz(quizData) {
+    if (!quizData || quizData.action !== 'start') return;
     currentQuiz = quizData;
     quizResultBanner.style.display = 'none';
     quizSubmittedMsg.style.display = 'none';
@@ -422,28 +510,91 @@ document.addEventListener('DOMContentLoaded', () => {
     quizOverlay.classList.remove('minimized');
     if (btnToggleQuizSize) btnToggleQuizSize.textContent = '▼ Thu nhỏ xem đề';
 
+    // Ẩn tất cả các form nhập liệu trước
+    if (quizOptionsContainer) quizOptionsContainer.style.display = 'none';
+    if (quizShortContainer) quizShortContainer.style.display = 'none';
+    if (quizWordcloudContainer) quizWordcloudContainer.style.display = 'none';
+    if (quizFillblankContainer) quizFillblankContainer.style.display = 'none';
+    if (quizDrawingContainer) quizDrawingContainer.style.display = 'none';
+    if (quizImageContainer) quizImageContainer.style.display = 'none';
+
     const type = quizData.quizType || 'mcq';
 
     if (type === 'short') {
-      // Dạng tự luận ngắn
+      // 1. Tự luận ngắn
       quizBadgeTitle.textContent = '✍️ CÂU HỎI TỰ LUẬN';
-      quizOptionsContainer.style.display = 'none';
       quizShortContainer.style.display = 'block';
       quizShortInput.value = '';
       quizShortInput.focus();
-
       btnSubmitShort.onclick = () => {
         const text = quizShortInput.value.trim();
-        if (!text) {
-          showToast('⚠️ Vui lòng nhập câu trả lời!');
-          return;
-        }
+        if (!text) return showToast('⚠️ Vui lòng nhập câu trả lời!');
         submitStudentAnswer(text, 'Đã gửi câu trả lời của em!');
       };
 
+    } else if (type === 'wordcloud') {
+      // 2. Đám mây từ khóa
+      quizBadgeTitle.textContent = '☁️ ĐÁM MÂY TỪ KHÓA';
+      if (quizWordcloudContainer) {
+        quizWordcloudContainer.style.display = 'block';
+        if (quizWordcloudInput) { quizWordcloudInput.value = ''; quizWordcloudInput.focus(); }
+        if (btnSubmitWordcloud) {
+          btnSubmitWordcloud.onclick = () => {
+            const word = quizWordcloudInput.value.trim();
+            if (!word) return showToast('⚠️ Vui lòng nhập từ khóa!');
+            submitStudentAnswer(word, `Đã gửi từ khóa: <b>${word}</b>!`);
+          };
+        }
+      }
+
+    } else if (type === 'fillblank') {
+      // 3. Điền vào chỗ trống
+      quizBadgeTitle.textContent = '✏️ ĐIỀN VÀO CHỖ TRỐNG';
+      if (quizFillblankContainer) {
+        quizFillblankContainer.style.display = 'block';
+        if (quizFillblankInput) { quizFillblankInput.value = ''; quizFillblankInput.focus(); }
+        if (btnSubmitFillblank) {
+          btnSubmitFillblank.onclick = () => {
+            const ans = quizFillblankInput.value.trim();
+            if (!ans) return showToast('⚠️ Vui lòng nhập đáp án!');
+            submitStudentAnswer(ans, `Đã gửi đáp án: <b>${ans}</b>!`);
+          };
+        }
+      }
+
+    } else if (type === 'drawing') {
+      // 4. Vẽ trực tiếp trên Slide
+      quizBadgeTitle.textContent = '🎨 BẢNG VẼ TRẢ LỜI';
+      if (quizDrawingContainer) {
+        quizDrawingContainer.style.display = 'block';
+        initDrawingPad();
+        if (btnSubmitDrawing) {
+          btnSubmitDrawing.onclick = () => {
+            if (!drawingCanvas) return;
+            const dataUrl = drawingCanvas.toDataURL('image/jpeg', 0.65);
+            submitStudentAnswer(dataUrl, 'Đã gửi bài vẽ của em!');
+          };
+        }
+      }
+
+    } else if (type === 'image') {
+      // 5. Chụp ảnh vở nộp bài
+      quizBadgeTitle.textContent = '📸 CHỤP ẢNH BÀI VỞ';
+      if (quizImageContainer) {
+        quizImageContainer.style.display = 'block';
+        compressedPhotoBase64 = null;
+        if (quizPhotoPreview) quizPhotoPreview.style.display = 'none';
+        if (quizPhotoPlaceholder) quizPhotoPlaceholder.style.display = 'block';
+        if (btnSubmitPhoto) {
+          btnSubmitPhoto.onclick = () => {
+            if (!compressedPhotoBase64) return showToast('⚠️ Em chưa chọn ảnh để tải lên!');
+            submitStudentAnswer(compressedPhotoBase64, 'Đã gửi ảnh bài làm của em!');
+          };
+        }
+      }
+
     } else {
-      // Dạng lựa chọn (Trắc nghiệm A,B,C,D / Đúng Sai / Bình chọn)
-      quizShortContainer.style.display = 'none';
+      // 6. Trắc nghiệm A,B,C,D / Đúng Sai / Khảo sát
       quizOptionsContainer.style.display = 'grid';
       quizOptionsContainer.innerHTML = '';
 
@@ -469,7 +620,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    quizOverlay.classList.add('open');
+    quizOverlay.style.display = 'block';
+    setTimeout(() => {
+      quizOverlay.classList.add('open');
+    }, 20);
     showToast('🎯 Thầy cô vừa giao câu hỏi mới!');
   }
 
@@ -539,6 +693,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnCloseQuiz.addEventListener('click', () => {
     quizOverlay.classList.remove('open');
+    setTimeout(() => {
+      quizOverlay.style.display = 'none';
+    }, 350);
   });
 
   // --- Tiện ích Toast thông báo ---

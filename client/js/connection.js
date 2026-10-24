@@ -24,8 +24,10 @@ class SlideConnection {
     this.onStatusChange = options.onStatusChange || (() => {});
     this.onSlideUpdate = options.onSlideUpdate || (() => {});
     this.onStreamUpdate = options.onStreamUpdate || (() => {});
+    this.onSessionModeChange = options.onSessionModeChange || (() => {});
     this.onQuizStart = options.onQuizStart || (() => {});
     this.onQuizEnd = options.onQuizEnd || (() => {});
+    this.onQuizDismiss = options.onQuizDismiss || (() => {});
     this.onQuizReveal = options.onQuizReveal || (() => {});
     this.onStarAward = options.onStarAward || (() => {});
     this.onKick = options.onKick || (() => {});
@@ -72,6 +74,7 @@ class SlideConnection {
         const baseTopic = `classlive/hncanhlsts/${this.roomCode}`;
         this.client.subscribe([
           `${baseTopic}/slide`,
+          `${baseTopic}/session_mode`,
           `${baseTopic}/quiz`,
           `${baseTopic}/quiz_reveal`,
           `${baseTopic}/star/${this.studentId}`,
@@ -120,7 +123,9 @@ class SlideConnection {
   }
 
   handleIncoming(topic, data) {
-    if (topic.endsWith('/slide')) {
+    if (topic.endsWith('/session_mode')) {
+      this.onSessionModeChange(data);
+    } else if (topic.endsWith('/slide')) {
       if (data.imageUrl) {
         this.onSlideUpdate({
           slideNumber: data.slideNumber || 1,
@@ -133,11 +138,15 @@ class SlideConnection {
         this.onQuizStart(data);
       } else if (data.action === 'stop') {
         this.onQuizEnd(data);
+      } else if (data.action === 'dismiss') {
+        this.onQuizDismiss(data);
       }
     } else if (topic.endsWith('/quiz_reveal')) {
       this.onQuizReveal(data);
     } else if (topic.includes('/star/')) {
       this.onStarAward(data);
+    } else if (topic.includes('/kick/')) {
+      this.onKick(data);
     }
   }
 
