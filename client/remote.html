@@ -460,7 +460,8 @@
           `${baseTopic}/answer/+`,
           `${baseTopic}/quiz`,
           `${baseTopic}/session_mode`,
-          `${baseTopic}/remote_cmd`
+          `${baseTopic}/remote_cmd`,
+          `${baseTopic}/slide`
         ], { qos: 0 });
       });
 
@@ -490,6 +491,11 @@
             if (s) s.answer = data.answer;
             updateRemoteStatsUI();
 
+          } else if (topic.endsWith('/slide')) {
+            if (data && data.slideNumber) {
+              currentSlide = data.slideNumber;
+              slideNumBadge.textContent = `Trang ${data.slideNumber}`;
+            }
           } else if (topic.endsWith('/session_mode')) {
             if (data && data.active) {
               remoteSessionInfo.textContent = data.mode === 'smart' ? '⚡ Slide Siêu Nét' : '📽️ Live Stream';
