@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng Điều Khiển Giáo Viên • ClassLive</title>
-  <script src="js/mqtt.min.js"></script>
+  <script src="js/mqtt.min.js?v=3.1"></script>
   <style>
     :root {
       --primary: #4f46e5;
@@ -897,27 +897,30 @@
       statusText.textContent = `Đã dừng phát sóng (Mã: ${classCode})`;
     }
 
+    function captureFrame() {
+      if (!mediaStream || previewVideo.videoWidth === 0) return;
+      captureCanvas.width = 1280;
+      captureCanvas.height = 720;
+      ctx.drawImage(previewVideo, 0, 0, 1280, 720);
+
+      // Nén ảnh chất lượng 70% (~60KB) để phát siêu mượt
+      const base64Image = captureCanvas.toDataURL('image/jpeg', 0.70);
+      const cleanCode = getCleanCode(classCode);
+
+      // Publish với RETAIN = TRUE để học sinh mới vào là thấy slide ngay tức khắc!
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
+          slideNumber: 1,
+          totalSlides: 1,
+          imageUrl: base64Image
+        }), { qos: 0, retain: true });
+      }
+    }
+
     function startFrameCapture() {
       if (captureInterval) clearInterval(captureInterval);
-      captureInterval = setInterval(() => {
-        if (!mediaStream || previewVideo.videoWidth === 0) return;
-        captureCanvas.width = 1280;
-        captureCanvas.height = 720;
-        ctx.drawImage(previewVideo, 0, 0, 1280, 720);
-
-        // Nén ảnh chất lượng 70% (~60KB) để phát siêu mượt
-        const base64Image = captureCanvas.toDataURL('image/jpeg', 0.70);
-        const cleanCode = getCleanCode(classCode);
-
-        // Publish với RETAIN = TRUE để học sinh mới vào là thấy slide ngay tức khắc!
-        if (mqttClient && mqttClient.connected) {
-          mqttClient.publish(`classlive/hncanhlsts/${cleanCode}/slide`, JSON.stringify({
-            slideNumber: 1,
-            totalSlides: 1,
-            imageUrl: base64Image
-          }), { qos: 0, retain: true });
-        }
-      }, 1200);
+      setTimeout(captureFrame, 400);
+      captureInterval = setInterval(captureFrame, 1000);
     }
 
     function updateStudentUI() {
