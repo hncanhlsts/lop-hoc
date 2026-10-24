@@ -20,6 +20,7 @@ class SlideConnection {
     // Callbacks
     this.onStatusChange = options.onStatusChange || (() => {});
     this.onSlideUpdate = options.onSlideUpdate || (() => {});
+    this.onStreamUpdate = options.onStreamUpdate || (() => {});
     this.onQuizStart = options.onQuizStart || (() => {});
     this.onQuizEnd = options.onQuizEnd || (() => {});
   }
@@ -52,6 +53,15 @@ class SlideConnection {
       this.peer.on('open', (id) => {
         console.log('Học sinh kết nối với ID:', id);
         this.connectToTeacher();
+      });
+
+      // Nhận video stream trực tiếp từ máy giáo viên
+      this.peer.on('call', (call) => {
+        call.answer();
+        call.on('stream', (remoteStream) => {
+          console.log('[Học sinh] Đã nhận Video bài giảng trực tiếp!');
+          this.onStreamUpdate(remoteStream);
+        });
       });
 
       this.peer.on('error', (err) => {

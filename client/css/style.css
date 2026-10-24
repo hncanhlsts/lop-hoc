@@ -572,3 +572,45 @@ html, body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+/* Thêm CSS cho Waiting Card và Video stream */
+.waiting-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px 30px;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  z-index: 20;
+}
+
+.waiting-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(99, 102, 241, 0.2);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.waiting-card h3 {
+  font-size: 17px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.waiting-card p {
+  font-size: 13.5px;
+  color: #94a3b8;
+  line-height: 1.5;
+}

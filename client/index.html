@@ -99,8 +99,16 @@
         <span>🤏</span> Dùng 2 ngón tay hoặc nút bên phải để phóng to
       </div>
 
+      <!-- Màn hình chờ khi Giáo viên chưa bật chia sẻ -->
+      <div id="waiting-card" class="waiting-card">
+        <div class="waiting-spinner"></div>
+        <h3 id="waiting-title">Đang kết nối tới lớp học...</h3>
+        <p id="waiting-desc">Vui lòng đợi Thầy/Cô bấm nút <b>"Bật trình chiếu"</b> trên máy tính.</p>
+      </div>
+
       <div class="slide-canvas-wrapper" id="slide-canvas-wrapper">
-        <img id="current-slide-img" class="slide-image" alt="Đang tải slide..." src="" />
+        <video id="slide-video" class="slide-image" autoplay playsinline muted style="display: none;"></video>
+        <img id="current-slide-img" class="slide-image" alt="Slide bài giảng" style="display: none;" />
       </div>
 
       <!-- Cụm nút điều khiển Zoom nhanh -->

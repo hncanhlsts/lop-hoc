@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const slideViewport = document.getElementById('slide-viewport');
   const slideCanvasWrapper = document.getElementById('slide-canvas-wrapper');
   const currentSlideImg = document.getElementById('current-slide-img');
+  const slideVideo = document.getElementById('slide-video');
+  const waitingCard = document.getElementById('waiting-card');
+  const waitingTitle = document.getElementById('waiting-title');
+  const waitingDesc = document.getElementById('waiting-desc');
   const zoomHint = document.getElementById('zoom-hint');
 
   // Zoom controls
@@ -64,16 +68,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const connection = new SlideConnection({
     onStatusChange: (status, message) => {
       syncStatusText.textContent = message;
+      if (waitingTitle && (status === 'connecting' || status === 'waiting' || status === 'disconnected' || status === 'error')) {
+        waitingTitle.textContent = message;
+      }
+    },
+    onStreamUpdate: (stream) => {
+      // Nhận video trình chiếu trực tiếp từ PowerPoint của GV
+      if (slideVideo) {
+        slideVideo.srcObject = stream;
+        slideVideo.style.display = 'block';
+        slideVideo.play().catch(() => {});
+      }
+      if (currentSlideImg) currentSlideImg.style.display = 'none';
+      if (waitingCard) waitingCard.style.display = 'none';
+      viewer.resetZoom();
+      showToast('🟢 Đã nhận bài giảng trực tiếp từ Thầy/Cô!');
     },
     onSlideUpdate: (slideData) => {
       // Cập nhật ảnh slide
-      currentSlideImg.src = slideData.imageUrl;
+      if (slideData.imageUrl) {
+        currentSlideImg.src = slideData.imageUrl;
+        currentSlideImg.style.display = 'block';
+        if (slideVideo) slideVideo.style.display = 'none';
+        if (waitingCard) waitingCard.style.display = 'none';
+      }
       slideCounter.textContent = `${slideData.slideNumber}/${slideData.totalSlides}`;
       
-      // Tự động thu về tỉ lệ vừa màn hình khi giáo viên chuyển trang
       viewer.resetZoom();
-      
-      // Ẩn hướng dẫn zoom sau vài giây
       if (zoomHint) {
         setTimeout(() => { zoomHint.style.opacity = '0'; }, 3500);
       }
@@ -112,6 +133,10 @@ document.addEventListener('DOMContentLoaded', () => {
     classBadge.textContent = roomCode;
     joinScreen.classList.add('hidden');
     viewerScreen.classList.remove('hidden');
+
+    if (isDemo && waitingCard) {
+      waitingCard.style.display = 'none';
+    }
 
     connection.connect(roomCode, name, isDemo);
     showToast(`👋 Chào mừng ${name} vào lớp ${roomCode}!`);

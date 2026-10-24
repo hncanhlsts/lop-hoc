@@ -429,6 +429,11 @@
         conn.on('open', () => {
           connections.set(studentPeerId, { conn: conn, name: 'Học sinh' });
           updateStudentUI();
+          
+          // Nếu đang phát sóng thì gọi truyền video stream tới học sinh ngay
+          if (mediaStream) {
+            peer.call(studentPeerId, mediaStream);
+          }
           sendCurrentFrame(conn);
         });
 
@@ -495,6 +500,13 @@
         };
 
         startFrameCapture();
+
+        // Truyền video stream tới tất cả học sinh đã có mặt trong phòng
+        connections.forEach((item, studentPeerId) => {
+          if (peer) {
+            peer.call(studentPeerId, mediaStream);
+          }
+        });
 
       } catch (err) {
         console.error('Không thể chia sẻ màn hình:', err);
